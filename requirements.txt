@@ -1,0 +1,5 @@
+https://github.com/pyrogram/pyrogram/archive/asyncio.zip
+Pillow
+wheel
+tgcrypto
+pyppeteer

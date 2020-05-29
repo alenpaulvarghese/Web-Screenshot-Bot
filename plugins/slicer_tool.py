@@ -12,7 +12,7 @@ HOME = InlineKeyboardMarkup([
             [InlineKeyboardButton(text='Format - PDF', callback_data='format')],
             [InlineKeyboardButton(text='Page - Full', callback_data="page")],
             # [InlineKeyboardButton(text='Landscape', callback_data="orientation")],
-            [InlineKeyboardButton(text='wait for | default', callback_data="timer")],
+            [InlineKeyboardButton(text='show additional options ˅', callback_data="options")],
             [InlineKeyboardButton(text='▫️ start render ▫️', callback_data="render")],
             [InlineKeyboardButton(text='cancel', callback_data="cancel")]
                             ])

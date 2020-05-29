@@ -1,12 +1,10 @@
 # https://coderwall.com/p/ovlnwa/use-python-and-pil-to-slice-an-image-vertically
 from __future__ import division
-from pyrogram import InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from PIL import Image
 import math
-import os
 import asyncio
 
-text_message = "**Note**:\nFor Smart-phone users, the rendered image cannot be viewed properly if the height is above 4000\n\nDo u want to split the file?"
 blacklist = ['drive.google.com', 'tor.checker.in']
 HOME = InlineKeyboardMarkup([
             [InlineKeyboardButton(text='Format - PDF', callback_data='format')],
@@ -18,9 +16,8 @@ HOME = InlineKeyboardMarkup([
                             ])
 
 
-async def long_slice(image_path, out_name, id_of_the_chat, client):
-    slice_size=4500
-    outdir = './FILES'
+async def long_slice(image_path, location, format):
+    slice_size = 800
     """slice an image into parts slice_size tall"""
     img = Image.open(image_path)
     width, height = img.size
@@ -28,6 +25,7 @@ async def long_slice(image_path, out_name, id_of_the_chat, client):
     left = 0
     slices = int(math.ceil(height/slice_size))
     count = 1
+    location_to_save = []
     for slice in range(slices):
         # if we are at the end, set the lower bound to be the bottom of the image
         if count == slices:
@@ -38,11 +36,14 @@ async def long_slice(image_path, out_name, id_of_the_chat, client):
         working_slice = img.crop(bbox)
         upper += slice_size
         # save the slice
-        location = os.path.join(outdir, "slice_" + out_name + "_" + str(count)+".png")
-        working_slice.save(location)
-        await client.send_photo(
-                photo=location,
-                chat_id=id_of_the_chat
-            )
-        os.remove(location)
+        if 'jpeg' in format:
+            location_to_save_slice = f'{location}/slice_{str(count)}.jpeg'
+        else:
+            location_to_save_slice = f'{location}/slice_{str(count)}.png'
+        location_to_save.append(InputMediaPhoto(
+            media=location_to_save_slice,
+            caption=str(count)
+            ))
+        working_slice.save(location_to_save_slice)
         count += 1
+    return location_to_save

@@ -1,7 +1,7 @@
 # Thanks CWPROJECTS For Helping Me
 # Thanks Spechide For Supporting Me
 from pyrogram import Client, Filters, InlineKeyboardButton
-from plugins.slicer_tool import long_slice, text_message, blacklist, HOME
+from plugins.slicer_tool import long_slice, blacklist, HOME
 from pyppeteer import launch, errors
 from PIL import Image
 import asyncio
@@ -55,67 +55,7 @@ async def checker(client, message):
 async def cb_(client, callback_query):
     cb_data = callback_query.data
     msg = callback_query.message
-
-
-    if not os.path.isdir(tmp_dir):
-        os.mkdir(tmp_dir)
-
-    # https://medium.com/@epicshane/one-liner-for-python-if-elif-else-statements-d9d46016ba2a
-    file = {cb_data == 'to_img': tmp_dir+"image.png", cb_data == 'to_pdf': tmp_dir+'image.pdf'}.get(True, tmp_dir+"image.png")
-
-    if cb_data == "to_img" or cb_data == "to_pdf":
-        url = callback_query.message.reply_to_message.text 
-        mode = True if cb_data == "to_img" else False
-        await msg.edit('Trying to Render...')
-        # Main Function
-        try:
-            await mainer(url, file, mode)
-        except errors.PageError as e:
-            await msg.edit(text='Not a valid link 😓🤔')
-            return False
-        await msg.edit('Succefully Rendered')
-        if cb_data == "to_img":
-            dimension = Image.open(file)
-            width, height = dimension.size
-            await asyncio.sleep(3)
-            await msg.edit(text=f'**Image Description**\nwidth  : {width}\nheight : {height}')
-            await asyncio.sleep(2.5)
-            if height > 4000:
-                await msg.reply_text(text=text_message,
-                                     reply_markup=InlineKeyboardMarkup([
-                                            [InlineKeyboardButton(text='yes', callback_data='split')],
-                                            [InlineKeyboardButton(text='no', callback_data='dont_split')]
-                                    ])
-                  )
-                return
-
-        await msg.edit('Uploading...')
-        await client.send_document(
-            document=file,
-            chat_id=callback_query.message.chat.id
-        )
-        await msg.delete()
-        os.remove(file)
-
-    elif cb_data == "split" or cb_data == "dont_split":
-        if cb_data == "dont_split":
-            await msg.edit('Uploading...')
-            await client.send_document(
-                document=file,
-                chat_id=callback_query.message.chat.id
-            )
-            os.remove(file)
-        else:
-            id_of_the_chat = callback_query.message.chat.id
-            await msg.edit("uploading")
-            await long_slice(
-                file,
-                str(id_of_the_chat),
-                id_of_the_chat,
-                client
-                )
-        await msg.delete()
-    elif cb_data == "render":
+    if cb_data == "render":
         link = msg.reply_to_message.text
         background, split, resolution = False, False, False
         for settings in msg.reply_markup.inline_keyboard:
@@ -133,7 +73,6 @@ async def cb_(client, callback_query):
             if "resolution" in settings[0].text:
                 resolution = settings[0].text.split('|', 1)[1].strip()
         # starting folder creartion with message id
-        print(format)
         if not os.path.isdir('./FILES'):
             os.mkdir('./FILES')
         location = f"./FILES/{str(msg.chat.id)}/{str(msg.message_id)}"
@@ -146,18 +85,19 @@ async def cb_(client, callback_query):
                 )
             page = await browser.newPage()
             await page.goto(link)
+            await asyncio.sleep(2)
             text = str(await page.title())
+            if len(text) > 14:
+                text = text[:14]
             if format == 'jpeg' or format == 'PNG':
                 arguments_for_photo = {}
                 if resolution:
-                    print(resolution)
                     if '1280' in resolution:
-                        res={'width': 1280, 'height': 720}
+                        res = {'width': 1280, 'height': 720}
                     elif '640' in resolution:
-                        res={'width': 640, 'height': 480}
+                        res = {'width': 640, 'height': 480}
                     else:
-                        res={'width': 800, 'height': 600}
-                    print("triggered")
+                        res = {'width': 800, 'height': 600}
                     await page.setViewport(res)
                 if page_value:
                     arguments_for_photo['fullPage'] = True
@@ -167,31 +107,75 @@ async def cb_(client, callback_query):
                 if format == 'PNG':
                     arguments_for_photo['path'] = f'{location}/{text.strip()}-webshotbot.png'
                     arguments_for_photo['type'] = 'png'
-
-                print(arguments_for_photo)
+                if background:
+                    await asyncio.sleep(3):
                 await page.screenshot(arguments_for_photo)
-                if not split:
-                    await client.send_document(
-                        document=arguments_for_photo['path']
-                        chat_id=msg.chat.id
-                        reply_to=
-                    )
+                await browser.close()
+                if split and page_value:
+                    location_of_image = await long_slice(
+                        arguments_for_photo['path'],
+                        location,
+                        format
+                        )
+                    sent_so_far = 0
+                    while sent_so_far <= len(location_of_image):
+                        await client.send_chat_action(
+                            msg.chat.id,
+                            "upload_photo"
+                            )
+                        await client.send_media_group(
+                            media=location_of_image[sent_so_far:sent_so_far+10],
+                            chat_id=msg.chat.id,
+                            reply_to_message_id=msg.reply_to_message.message_id,
+                            disable_notification=True
+                            )
+                        sent_so_far += 10
+                        await asyncio.sleep(2)
+                else:
+                    if not page_value:
+                        await client.send_chat_action(
+                            msg.chat.id,
+                            "upload_photo"
+                            )
+                        await client.send_photo(
+                            photo=arguments_for_photo['path'],
+                            chat_id=msg.chat.id,
+                            reply_to_message_id=msg.reply_to_message.message_id
+                            )
+                    else:
+                        await client.send_chat_action(
+                            msg.chat.id,
+                            "upload_document"
+                            )
+                        await client.send_document(
+                            document=arguments_for_photo['path'],
+                            chat_id=msg.chat.id,
+                            reply_to_message_id=msg.reply_to_message.message_id
+                            )
 
             else:
-                print(page.viewport)
                 arguments_for_pdf = {'format': 'A4'}
                 arguments_for_pdf['path'] = f'{location}/{text.strip()}-webshotbot.pdf'
                 if not page_value:
                     arguments_for_pdf['pageRanges'] = '1-2'
                 if background:
+                    await asyncio.sleep(3)
                     arguments_for_pdf['printBackground'] = True
-                #print(arguments_for_pdf)
-                #await page.pdf(arguments_for_pdf)
-            await browser.close()
+                await page.pdf(arguments_for_pdf)
+                await client.send_chat_action(
+                        msg.chat.id,
+                        "upload_document"
+                        )
+                await asyncio.sleep(2)
+                await browser.close()
+                await client.send_document(
+                        document=arguments_for_pdf['path'],
+                        chat_id=msg.chat.id,
+                        reply_to_message_id=msg.reply_to_message.message_id
+                        )
         except errors.PageError as e:
             await msg.edit(text='Not a valid link 😓🤔')
             return False
-
 
     elif cb_data == "splits":
         if "PDF" not in msg.reply_markup.inline_keyboard[0][0].text:

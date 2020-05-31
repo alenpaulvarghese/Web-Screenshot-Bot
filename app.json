@@ -1,7 +1,7 @@
 {
   "name": "Web-shot BOT",
   "description": "A bot to render websites and upload the imageto telegraph",
-  "repository": "https://github.com/alenpaul2001/Site---Scraper",
+  "repository": "https://github.com/alenpaul2001/Web-Screenshot-Bot",
   "keywords": ["telegram", "telegraph", "website","telegram bot"],
   "env": {
      "BOT_TOKEN": {
@@ -21,10 +21,9 @@
     "value": ""
     }
    },
-   "buildpacks": [
-    {
-      "url": "heroku/python",
+   "buildpacks": [{
+      "url": "heroku/python"
+   }, {
       "url": "https://github.com/heroku/heroku-buildpack-google-chrome"
-    }
-  ]
+   }]
 }

@@ -1,0 +1,2 @@
+# Web-Screenshot-Bot
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/14e4b6f385a44aa9b35602e3ff52a668)](https://app.codacy.com/manual/alenpaul2001/Web-Screenshot-Bot?utm_source=github.com&utm_medium=referral&utm_content=alenpaul2001/Web-Screenshot-Bot&utm_campaign=Badge_Grade_Dashboard)

@@ -71,7 +71,7 @@ async def cb_(client, callback_query):
             os.makedirs(location)
         # logging the request into a specific group or channel
         try:
-            LOGGING_GROUP = os.environ.get('LOG_GROUP')
+            LOGGING_GROUP = int(os.environ["LOG_GROUP"])
             await client.send_message(
                 chat_id=LOGGING_GROUP,
                 text=format_for_logging.format(

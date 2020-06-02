@@ -48,6 +48,7 @@ async def notworking(client, message):
         reply_to_message_id=message.message_id
     )
 
+
 @Client.on_message(Filters.command(["delete"]) & Filters.private)
 async def delete(client, message):
     try:
@@ -66,7 +67,7 @@ async def delete(client, message):
                     chat_id=message.chat.id
                 )
                 await random_message.delete()
-                os.system('rm -f walk.txt')
+                os.remove('walk.txt')
                 await message.reply_text(
                     text='Do you want to delete?',
                     reply_markup=InlineKeyboardMarkup([

@@ -6,6 +6,7 @@ from pyppeteer import launch, errors
 from zipfile import ZipFile
 from PIL import Image
 import asyncio
+import shutil
 import math
 import os
 
@@ -226,7 +227,7 @@ async def cb_(client, callback_query):
                             )
                 await asyncio.sleep(1)
                 await random_message.delete()
-                os.system(f'rm -r -f {location}')
+                shutil.rmtree(location)
             # configuring pdf settings
             else:
                 await random_message.edit(text='<b><i>rendering.</b></i>')
@@ -265,7 +266,7 @@ async def cb_(client, callback_query):
                         )
                 await asyncio.sleep(1)
                 await random_message.delete()
-                os.system(f'rm -r -f {location}')
+                shutil.rmtree(location)
         except errors.PageError:
             await msg.edit(text='Not a valid link 😓🤔')
             return False
@@ -374,7 +375,7 @@ async def cb_(client, callback_query):
         else:
             await msg.edit(text='deleteing')
             try:
-                os.system('rm -r -f ./FILES/')
+                shutil.rmtree('./FILES/')
             except Exception as e:
                 await msg.edit(text=e)
             finally:

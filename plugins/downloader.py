@@ -7,12 +7,11 @@ from zipfile import ZipFile
 from PIL import Image
 import asyncio
 import math
-import time
 import os
 
 try:
     EXEC_PATH = os.environ.get('GOOGLE_CHROME_SHIM')
-except Exception as e:
+except Exception:
     print('Driver Not Found')
 
 
@@ -113,13 +112,13 @@ async def cb_(client, callback_query):
                     else:
                         res = {'width': 800, 'height': 600}
                     await page.setViewport(res)
-                # configure btw Partial/fullpage 
+                # configure btw Partial/fullpage
                 if page_value:
                     arguments_for_photo['fullPage'] = True
                 await random_message.edit(text='<b><i>Rendering.</b></i>')
                 # naming for the output file
                 if format == 'jpeg':
-                    arguments_for_photo['path'] = f'{location}/{text.strip()}-webshotbot.jpeg' 
+                    arguments_for_photo['path'] = f'{location}/{text.strip()}-webshotbot.jpeg'
                     arguments_for_photo['type'] = 'jpeg'
                 if format == 'PNG':
                     arguments_for_photo['path'] = f'{location}/{text.strip()}-webshotbot.png'
@@ -130,7 +129,7 @@ async def cb_(client, callback_query):
                 # taking screenshot and closing the browser
                 await page.screenshot(arguments_for_photo)
                 await browser.close()
-                # spliting the image 
+                # spliting the image
                 if split and page_value:
                     await random_message.edit(text='<b><i>Spliting Images...</b></i>')
                     # https://stackoverflow.com/questions/25705773/image-cropping-tool-python
@@ -141,7 +140,7 @@ async def cb_(client, callback_query):
                     width, height = img.size
                     upper, left, count, slice_size = 0, 0, 1, 800
                     slices = int(math.ceil(height/slice_size))
-                    for slice in range(slices):
+                    for _ in range(slices):
                         # if we are at the end, set the lower bound to be the bottom of the image
                         if count == slices:
                             lower = height
@@ -267,7 +266,7 @@ async def cb_(client, callback_query):
                 await asyncio.sleep(1)
                 await random_message.delete()
                 os.system(f'rm -r -f {location}')
-        except errors.PageError as e:
+        except errors.PageError:
             await msg.edit(text='Not a valid link 😓🤔')
             return False
     elif cb_data == "splits":
@@ -317,7 +316,7 @@ async def cb_(client, callback_query):
             msg.reply_markup.inline_keyboard[index_to_change][0]['text'] = options_to_change
 
         else:
-            for x in range(3):
+            for _ in range(3):
                 msg.reply_markup.inline_keyboard.pop(-3)
             msg.reply_markup.inline_keyboard[-3][0]['text'] = options_to_change
         await msg.edit(text='Choose the prefered settings', reply_markup=msg.reply_markup)

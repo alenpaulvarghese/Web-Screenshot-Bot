@@ -1,5 +1,4 @@
 from pyrogram import Client, Filters, InlineKeyboardButton, InlineKeyboardMarkup
-import asyncio
 import os
 
 blacklist = ['drive.google.com', 'tor.checker.in']
@@ -53,7 +52,7 @@ async def notworking(client, message):
 async def delete(client, message):
     try:
         sudo_user = int(os.environ["SUDO_USER"])
-    except Exception as e:
+    except Exception:
         return False
     if message.from_user.id == sudo_user:
         random_message = await message.reply_text('Processing')

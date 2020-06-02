@@ -1,4 +1,4 @@
-from pyrogram import Client 
+from pyrogram import Client
 from creds import my
 
 plugins = dict(

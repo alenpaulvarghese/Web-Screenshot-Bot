@@ -1,5 +1,4 @@
-import os 
-
+import os
 
 class my():
     BOT_TOKEN = os.environ["BOT_TOKEN"]

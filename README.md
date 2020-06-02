@@ -7,7 +7,7 @@ A Telegram _Web to Screenshot_ Bot Based on Pyrogram
 
 Telegram Bot that creates screenshot _[PNG/JPEG]_ or PDF of a given link. Can be matched with various other settings like resolution, partial or fullpage rendering and background rendering. The bot can be currently found in @WEBSSRobot.
 
-Available Resolutions are :
+### Available Resolutions are :
 
 1. 640x480
 2. 800x600
@@ -34,7 +34,7 @@ pip3 install -r requirements.txt
 # <Create creds.py appropriately>
 python3 main.py
 ```
-### an example creds.py 👇
+#### an example creds.py 👇
 ```py
 import os
 

@@ -2,6 +2,7 @@
 # Thanks Spechide For Supporting Me
 from pyrogram import Client, Filters, InlineKeyboardButton, InputMediaPhoto
 from plugins.command_handlers import blacklist, HOME, format_for_logging
+from http.client import BadStatusLine
 from pyppeteer import launch, errors
 from zipfile import ZipFile
 from PIL import Image
@@ -10,8 +11,10 @@ import shutil
 import math
 import os
 
+
 try:
     EXEC_PATH = os.environ.get('GOOGLE_CHROME_SHIM')
+    retry = False
 except Exception:
     print('Driver Not Found')
 
@@ -27,7 +30,7 @@ async def checker(client, message):
 
 
 @Client.on_callback_query()
-async def cb_(client, callback_query):
+async def cb_(client, callback_query, retry = False):
     cb_data = callback_query.data
     msg = callback_query.message
     if (cb_data == "render"
@@ -98,6 +101,8 @@ async def cb_(client, callback_query):
             if len(text) > 14:
                 text = text[:14]
             text = text.replace(' ', '')
+            text = text.replace('/', '')
+            text = text.replace('\\', '')
             # implementing the settings
             await random_message.edit(text='<b><i>Rendering</b></i>')
             if format == 'jpeg' or format == 'PNG':
@@ -230,7 +235,7 @@ async def cb_(client, callback_query):
                 shutil.rmtree(location)
             # configuring pdf settings
             else:
-                await random_message.edit(text='<b><i>rendering.</b></i>')
+                await random_message.edit(text='<b><i>Rendering.</b></i>')
                 arguments_for_pdf = {}
                 if resolution:
                     if '1280' in resolution:
@@ -238,11 +243,14 @@ async def cb_(client, callback_query):
                     elif '2560' in resolution:
                         # cause asked by <ll>//𝚂𝚊𝚢𝚊𝚗𝚝𝚑//<ll>
                         arguments_for_pdf = {'width': 2560, 'height': 1440}
-                        arguments_for_pdf['scale'] = 2
                     elif '640' in resolution:
                         arguments_for_pdf = {'width': 640, 'height': 480}
                     else:
                         arguments_for_pdf = {'width': 800, 'height': 600}
+
+                arguments_for_pdf['format'] = 'Letter'
+                arguments_for_pdf['displayHeaderFooter'] = True
+                arguments_for_pdf['margin'] = {"bottom": 70, "left": 25, "right": 35, "top": 40}
                 await page.emulateMedia('screen')
                 arguments_for_pdf['path'] = f'{location}/{text}-webshotbot.pdf'
                 if not page_value:
@@ -265,11 +273,28 @@ async def cb_(client, callback_query):
                         reply_to_message_id=msg.reply_to_message.message_id
                         )
                 await asyncio.sleep(1)
-                await random_message.delete()
                 shutil.rmtree(location)
         except errors.PageError:
             await msg.edit(text='Not a valid link 😓🤔')
             return False
+        except BadStatusLine:
+            if not retry:
+                await msg.edit("<b>Site Error\nRetrying....</b>")
+                await asyncio.sleep(4)
+                await cb_(client, callback_query, retry=True)
+            elif retry:
+                await msg.edit("<b>Soory the site is not responding</b>")
+                return False
+        except Exception as e:
+            hey = await msg.reply_to_message.reply_text(
+                f'''something went wrong\n
+<b>reason:</b>\n\n<code>{e}</code>\n
+<i>do a anonymous reporting to the developer
+by tagging this message and use <code>/report</code> command</i>\n\n
+retry if possible...''',
+                quote=True
+                )
+
     elif cb_data == "splits":
         if "PDF" not in msg.reply_markup.inline_keyboard[0][0].text:
             index_number = 1
@@ -368,7 +393,7 @@ async def cb_(client, callback_query):
             show_alert=True
         )
     elif cb_data == 'deleteno' or cb_data == 'deleteyes':
-        if cb_data =='deleteno':
+        if cb_data == 'deleteno':
             await msg.edit(text='process canceled')
             await asyncio.sleep(2)
             await msg.delete()

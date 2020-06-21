@@ -77,3 +77,23 @@ async def delete(client, message):
                     )
     else:
         return
+
+
+@Client.on_message(Filters.command(["report"]) & Filters.private)
+async def delete(client, message):
+    try:
+        sudo_user = int(os.environ["SUDO_USER"])
+    except Exception:
+        return False
+    if message.reply_to_message is not None:
+        if message.reply_to_message.from_user.is_self:
+            message_to_send = message.reply_to_message.text
+            await client.send_message(
+                sudo_user,
+                message_to_send
+            )
+            await message.reply_text("report successfully send")
+        else:
+            await message.reply_text("don't spam please")
+    else:
+        await message.reply_text("just tag the error message and use /report command")

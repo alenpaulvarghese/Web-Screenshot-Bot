@@ -50,7 +50,7 @@ async def notworking(client, message):
 
 
 @Client.on_message(Filters.command(["delete"]) & Filters.private)
-async def delete(client, message):
+async def deleter_(client, message):
     try:
         sudo_user = int(os.environ["SUDO_USER"])
     except Exception:

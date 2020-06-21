@@ -272,6 +272,7 @@ async def cb_(client, callback_query, retry = False):
                         chat_id=msg.chat.id,
                         reply_to_message_id=msg.reply_to_message.message_id
                         )
+                await random_message.delete()
                 await asyncio.sleep(1)
                 shutil.rmtree(location)
         except errors.PageError:
@@ -286,7 +287,7 @@ async def cb_(client, callback_query, retry = False):
                 await msg.edit("<b>Soory the site is not responding</b>")
                 return False
         except Exception as e:
-            hey = await msg.reply_to_message.reply_text(
+            await msg.reply_to_message.reply_text(
                 f'''something went wrong\n
 <b>reason:</b>\n\n<code>{e}</code>\n
 <i>do a anonymous reporting to the developer

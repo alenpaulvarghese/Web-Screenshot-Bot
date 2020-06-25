@@ -277,8 +277,10 @@ async def cb_(client, callback_query, retry = False):
                 shutil.rmtree(location)
         except errors.PageError:
             await msg.edit(text='Not a valid link 😓🤔')
+            await browser.close()
             return False
         except BadStatusLine:
+            await browser.close()
             if not retry:
                 await msg.edit("<b>Site Error\nRetrying....</b>")
                 await asyncio.sleep(4)

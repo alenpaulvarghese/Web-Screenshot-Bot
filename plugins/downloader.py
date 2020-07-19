@@ -94,7 +94,7 @@ async def cb_(client, callback_query, retry = False):
                 executablePath=EXEC_PATH
                 )
             page = await browser.newPage()
-            await page.goto(link, {"waitUtil": 'networkidle0'})
+            await page.goto(link)
             await asyncio.sleep(2)
             # getting page title
             text = str(await page.title())

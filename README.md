@@ -18,10 +18,6 @@ Spliting of long pages is available for png and jpeg, upto 20 images is sent as 
 
 # Installing 
 
-### <b>The Easy way</b>
-
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
-
 ### <b>The Legacy Way</b>
 Simply clone the repository and run the main file:
 

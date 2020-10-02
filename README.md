@@ -3,7 +3,7 @@
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/) [![Open Source Love svg1](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badges/)
 
 A Telegram _Web to Screenshot_ Bot Based on Pyrogram
-# Introduction
+# Introduction to Web-Screenshot-Bot:
 
 Telegram Bot that creates screenshot _[PNG/JPEG]_ or PDF of a given link. Can be matched with various other settings like resolution, partial or fullpage rendering and background rendering. The bot can be currently found in @WEBSSRobot.
 

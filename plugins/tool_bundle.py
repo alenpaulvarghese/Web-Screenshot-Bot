@@ -1,9 +1,35 @@
+from pyppeteer import launch
 from zipfile import ZipFile
 from typing import List
 from PIL import Image
 import asyncio
 import math
 import io
+
+
+class Printer(object):
+    def __init__(self, _type: str):
+        self.resolution = {'width': 800, 'height': 600}
+        self.type = _type
+        self.fullpage = True
+
+    @property
+    def arguments_to_print(self) -> dict:
+        if self.type == "pdf":
+            arguments_for_pdf = {
+                'format': 'Letter', 'displayHeaderFooter': True,
+                'margin': {"bottom": 70, "left": 25, "right": 35, "top": 40},
+                "printBackground": True
+            }
+            if self.fullpage:
+                arguments_for_pdf["pageRanges"] = "1-2"
+            return arguments_for_pdf
+        elif self.type == "png" or self.type == "jpeg":
+            arguments_for_image = {
+                'type': self.type, "omitBackground": True}
+            if self.fullpage:
+                arguments_for_image['fullPage'] = True
+            return arguments_for_image
 
 
 # https://stackoverflow.com/questions/25705773/image-cropping-tool-python
@@ -48,3 +74,28 @@ async def zipper(location_of_image: List[io.BytesIO]) -> io.BytesIO:
             files.close()
     zipped_file.name = "@Webs-Screenshot.zip"
     return zipped_file
+
+
+async def screenshot_driver(link: str, tasks=[]) -> io.BytesIO:
+    print('link: ', link)
+    if len(tasks) != 0:
+        print("yielded browser obj from existing task list:", link)
+        browser = tasks[0]
+    else:
+        print(f"no browser obj in tasks, creating new... now getting {link}")
+        browser = await launch(
+            headless=False,
+        )
+        tasks.append(browser)
+    page = await browser.newPage()
+    await page.goto(link)
+    await asyncio.sleep(5)
+    # things to do
+    print("Done!-", link)
+    await page.close()
+    if len(await browser.pages()) == 1:
+        print('hm no one is using the browser, i am closing it: ', link)
+        tasks.remove(browser)
+        await browser.close()
+    elif len(await browser.pages()) > 2:
+        print("someone is using the broswer, i am leaving it there: ", link)

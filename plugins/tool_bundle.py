@@ -1,27 +1,51 @@
-from pyppeteer import launch
+from plugins.logger import logging  # pylint:disable=import-error
+from http.client import BadStatusLine, ResponseNotReady
+from pyrogram import Client
+from pyrogram.types import (
+    Message,
+    InputMediaPhoto
+)
+from pyppeteer import launch, errors
 from zipfile import ZipFile
 from typing import List
 from PIL import Image
 import asyncio
+import shutil
 import math
 import io
+import os
+
+
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(10)
 
 
 class Printer(object):
-    def __init__(self, _type: str):
+    def __init__(self, _type: str, _link: str):
         self.resolution = {'width': 800, 'height': 600}
         self.type = _type
         self.fullpage = True
+        self.split = False
+        self.link = _link
+        self.name = f"@Webs-Screenshot.{self.type}"
+
+    def __str__(self):
+        res = f'{self.resolution["width"]}+{self.resolution["height"]}'
+        return f'({self.type}|{res}|{self.fullpage})\n```{self.link}```'
 
     @property
     def arguments_to_print(self) -> dict:
         if self.type == "pdf":
             arguments_for_pdf = {
-                'format': 'Letter', 'displayHeaderFooter': True,
+                'displayHeaderFooter': True,
                 'margin': {"bottom": 70, "left": 25, "right": 35, "top": 40},
                 "printBackground": True
             }
-            if self.fullpage:
+            if self.resolution['width'] == 800:
+                arguments_for_pdf['format'] = "Letter"
+            else:
+                arguments_for_pdf = {**arguments_for_pdf, **self.resolution}
+            if not self.fullpage:
                 arguments_for_pdf["pageRanges"] = "1-2"
             return arguments_for_pdf
         elif self.type == "png" or self.type == "jpeg":
@@ -33,7 +57,7 @@ class Printer(object):
 
 
 # https://stackoverflow.com/questions/25705773/image-cropping-tool-python
-async def split_func(out: io.BytesIO, format: str) -> List[io.BytesIO]:
+async def split_func(out: io.BytesIO, _format: str) -> List[io.BytesIO]:
     Image.MAX_IMAGE_PIXELS = None
     # https://coderwall.com/p/ovlnwa/use-python-and-pil-to-slice-an-image-vertically
     location_of_image = []
@@ -51,13 +75,13 @@ async def split_func(out: io.BytesIO, format: str) -> List[io.BytesIO]:
         working_slice = img.crop(bbox)
         upper += slice_size
         # saving = the slice
-        if 'jpeg' in format:
+        if 'jpeg' in _format:
             location_to_save_slice = f'@Webs.ScreenCapture-{str(count)}.jpeg'
         else:
             location_to_save_slice = f'@Webs.ScreenCapture-{str(count)}.png'
         split_out = io.BytesIO()
         split_out.name = location_to_save_slice
-        working_slice.save(fp=split_out, format=format)
+        working_slice.save(fp=split_out, format=_format)
         location_of_image.append(split_out)
         count += 1
         await asyncio.sleep(0)
@@ -76,26 +100,180 @@ async def zipper(location_of_image: List[io.BytesIO]) -> io.BytesIO:
     return zipped_file
 
 
-async def screenshot_driver(link: str, tasks=[]) -> io.BytesIO:
-    print('link: ', link)
+async def settings_parser(link: str, inline_keyboard: list) -> Printer:
+    # starting to recognize settings
+    split, resolution = False, False
+    for settings in inline_keyboard:
+        text = settings[0].text
+        if "Format" in text:
+            if "PDF" in text:
+                _format = "pdf"
+            else:
+                _format = "png" if "PNG" in text else "jpeg"
+        if "Page" in text:
+            page_value = True if 'Full' in text else False
+        if "Split" in text:
+            split = True if 'Yes' in text else False
+        if "resolution" in text:
+            resolution = text
+        await asyncio.sleep(0.00001)
+    LOGGER.debug(f'WEB_SCRS --> setting confirmation >> ({_format}|{page_value})')
+    printer = Printer(_format, link)
+    if resolution:
+        if '1280' in resolution:
+            printer.resolution = {'width': 1280, 'height': 720}
+        elif '2560' in resolution:
+            printer.resolution = {'width': 2560, 'height': 1440}
+        elif '640' in resolution:
+            printer.resolution = {'width': 640, 'height': 480}
+    if not page_value:
+        printer.fullpage = False
+    if split:
+        printer.split = True
+    return printer
+
+
+async def screenshot_driver(printer: Printer, tasks=[]) -> bytes:
     if len(tasks) != 0:
-        print("yielded browser obj from existing task list:", link)
+        LOGGER.info('WEB_SCRS --> browser object >> yielded from existing task list')
         browser = tasks[0]
     else:
-        print(f"no browser obj in tasks, creating new... now getting {link}")
+        LOGGER.info('WEB_SCRS --> no browser object exists >> creating new')
         browser = await launch(
             headless=False,
+            logLevel=50
         )
         tasks.append(browser)
-    page = await browser.newPage()
-    await page.goto(link)
-    await asyncio.sleep(5)
-    # things to do
-    print("Done!-", link)
-    await page.close()
+
+    async def launch_chrome(retry=False) -> bytes:
+        try:
+            page = await browser.newPage()
+            LOGGER.debug('WEB_SCRS --> created new page object >> now setting viewport')
+            await page.setViewport(printer.resolution)
+            LOGGER.debug('WEB_SCRS --> fetching received link')
+            await page.goto(printer.link)
+            LOGGER.debug('WEB_SCRS --> link fetched successfully >> now rendering page')
+            if printer.type == "pdf":
+                end_file = await page.pdf(printer.arguments_to_print)
+            else:
+                end_file = await page.screenshot(printer.arguments_to_print)
+            LOGGER.debug('WEB_SCRS --> page rendered successfully >> now closing page object')
+            return end_file
+        except BadStatusLine:
+            if not retry:
+                LOGGER.info('WEB_SCRS --> request failed -> Excepted BadStatusLine >> retrying...')
+                await asyncio.sleep(1.5)
+                await launch_chrome(True)
+            elif retry:
+                LOGGER.info('WEB_SCRS --> request failed -> Excepted BadStatusLine >> max retry exceeded')
+                raise ResponseNotReady("Soory the site is not responding")
+        except errors.PageError:
+            LOGGER.info('WEB_SCRS --> request failed -> Excepted PageError >> invalid link')
+            raise ResponseNotReady("Not a valid link 😓🤔")
+        finally:
+            await page.close()
+    end_file = await launch_chrome()
     if len(await browser.pages()) == 1:
-        print('hm no one is using the browser, i am closing it: ', link)
+        LOGGER.info('WEB_SCRS --> no task pending >> closing browser object')
         tasks.remove(browser)
         await browser.close()
     elif len(await browser.pages()) > 2:
-        print("someone is using the broswer, i am leaving it there: ", link)
+        LOGGER.info('WEB_SCRS --> task pending >> leaving browser intact')
+    return end_file
+
+
+async def primary_task(client: Client, msg: Message, queue=[]) -> bytes:
+    link = msg.reply_to_message.text
+    queue.append(link)
+    LOGGER.debug('WEB_SCRS --> new request >> processing settings')
+    if len(queue) > 2:
+        await msg.edit("<b>You are in the queue wait for a bit ;)</b>")
+        while len(queue) > 2:
+            await asyncio.sleep(2)
+    random_message = await msg.edit(text='<b><i>processing...</b></i>')
+    printer = await settings_parser(link, msg.reply_markup.inline_keyboard)
+    # logging the request into a specific group or channel
+    try:
+        log = int(os.environ["LOG_GROUP"])
+        LOGGER.debug('WEB_SCRS --> LOG GROUP FOUND >> sending log')
+        await client.send_message(
+            log,
+            f'```{msg.chat.username}```\n{printer.__str__()}')
+    except Exception as e:
+        LOGGER.debug(f'WEB_SCRS --> LOGGING FAILED >> {e}')
+    await random_message.edit(text='<b><i>rendering.</b></i>')
+    # await browser.close()
+    try:
+        out = await screenshot_driver(printer)
+    except ResponseNotReady as e:
+        await random_message.edit(f'<b>{e}</b>')
+        return
+    if printer.fullpage and printer.fullpage:
+        LOGGER.debug('WEB_SCRS --> split setting detected -> spliting images')
+        await random_message.edit(text='<b><i>spliting Images...</b></i>')
+        location_of_image = await split_func(io.BytesIO(out), printer.type)
+        LOGGER.debug('WEB_SCRS --> image splited successfully')
+        # spliting finished
+        if len(location_of_image) > 20:
+            LOGGER.debug('WEB_SCRS --> found split pieces more than 20 >> zipping file')
+            await random_message.edit(text='<b>detected images more than 20\n\n<i>Zipping...</i></b>')
+            await asyncio.sleep(0.1)
+            # zipping if length is too high
+            zipped_file = await zipper(location_of_image)
+            LOGGER.debug('WEB_SCRS --> zipping completed >> sending file')
+            #  finished zipping and sending the zipped file as document
+            await random_message.edit(text='<b><i>Uploading...</b></i>')
+            await client.send_chat_action(
+                msg.chat.id,
+                "upload_document"
+                )
+            await client.send_document(
+                document=zipped_file,
+                chat_id=msg.chat.id,
+                reply_to_message_id=msg.reply_to_message.message_id
+                )
+            LOGGER.debug('WEB_SCRS --> file send successfully >> request statisfied')
+            zipped_file.close()
+            # sending as media group if files are not too long
+            # pyrogram doesnt support InputMediaPhotot to use BytesIO
+            # until its added to the library going for temporary fix
+        else:
+            # starting folder creartion with message id
+            if not os.path.isdir('./FILES'):
+                LOGGER.debug('WEB_SCRS --> ./FILES folder not found >> creating new ')
+                os.mkdir('./FILES')
+            location = f"./FILES/{str(msg.chat.id)}/{str(msg.message_id)}"
+            if not os.path.isdir(location):
+                LOGGER.debug(f'WEB_SCRS --> user folder not found >> creating {location}')
+                os.makedirs(location)
+            LOGGER.debug('WEB_SCRS --> sending split pieces as media group')
+            for byte_objects in location_of_image:
+                with open(f'{location}/{byte_objects.name}', 'wb') as writer:
+                    writer.write(byte_objects.getvalue())
+                byte_objects.close()
+            await random_message.edit(text='<b><i>Uploading...</b></i>')
+            location_to_send = []
+            for count, images in enumerate(location_of_image, start=1):
+                location_to_send.append(InputMediaPhoto(
+                    media=f'{location}/{images.name}',
+                    caption=str(count)
+                    ))
+            sent_so_far = 0
+            # sending 10 at a time
+            while sent_so_far <= len(location_to_send):
+                await client.send_chat_action(
+                    msg.chat.id,
+                    "upload_photo"
+                    )
+                await client.send_media_group(
+                    media=location_to_send[sent_so_far:sent_so_far+10],
+                    chat_id=msg.chat.id,
+                    reply_to_message_id=msg.reply_to_message.message_id,
+                    disable_notification=True
+                    )
+                sent_so_far += 10
+                await asyncio.sleep(0.1)
+            shutil.rmtree(location)
+            LOGGER.debug('WEB_SCRS --> mediagroup send successfully >> request statisfied')
+    queue.remove(link)
+    return out

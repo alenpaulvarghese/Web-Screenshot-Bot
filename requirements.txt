@@ -1,4 +1,4 @@
-https://github.com/pyrogram/pyrogram/archive/asyncio.zip
+pyrogram
 Pillow
 wheel
 tgcrypto

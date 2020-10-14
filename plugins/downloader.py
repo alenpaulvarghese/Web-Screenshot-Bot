@@ -24,15 +24,9 @@ from plugins.tool_bundle import (  # pylint:disable=import-error
 from plugins.logger import logging  # pylint:disable=import-error
 import asyncio
 import shutil
-import os
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(10)
-
-try:
-    EXEC_PATH = os.environ.get('GOOGLE_CHROME_SHIM')
-except Exception:
-    LOGGER.critical('Driver Not Found')
 
 
 @Client.on_message(filters.regex(pattern="http[s]*://.+") & filters.private & ~filters.edited)

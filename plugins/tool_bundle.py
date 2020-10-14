@@ -25,8 +25,9 @@ import io
 import os
 
 
+EXEC_PATH = os.environ.get('GOOGLE_CHROME_SHIM', None)
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
+LOGGER.setLevel(logging.DEBUG)
 
 
 class Printer(object):
@@ -150,7 +151,8 @@ async def screenshot_driver(printer: Printer, tasks=[]) -> bytes:
         LOGGER.info('WEB_SCRS --> no browser object exists >> creating new')
         browser = await launch(
             headless=True,
-            logLevel=50
+            logLevel=50,
+            executablePath=EXEC_PATH
         )
         tasks.append(browser)
 
@@ -223,27 +225,27 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
     except ResponseNotReady as e:
         await random_message.edit(f'<b>{e}</b>')
         return
+    await random_message.edit(text='<b><i>rendering..</b></i>')
     if printer.split and printer.fullpage:
         LOGGER.debug('WEB_SCRS --> split setting detected -> spliting images')
-        await random_message.edit(text='<b><i>spliting Images...</b></i>')
+        await random_message.edit(text='<b><i>spliting images...</b></i>')
         location_of_image = await split_func(out, printer.type)
         LOGGER.debug('WEB_SCRS --> image splited successfully')
         # spliting finished
         if len(location_of_image) > 10:
-            LOGGER.debug('WEB_SCRS --> found split pieces more than 20 >> zipping file')
-            await random_message.edit(text='<b>detected images more than 20\n\n<i>Zipping...</i></b>')
+            LOGGER.debug('WEB_SCRS --> found split pieces more than 10 >> zipping file')
+            await random_message.edit(text='<b>detected images more than 10\n\n<i>Zipping...</i></b>')
             await asyncio.sleep(0.1)
             # zipping if length is too high
             zipped_file = await zipper(location_of_image)
             LOGGER.debug('WEB_SCRS --> zipping completed >> sending file')
             #  finished zipping and sending the zipped file as document
-            await random_message.edit(text='<b><i>Uploading...</b></i>')
             out = zipped_file
             LOGGER.debug('WEB_SCRS --> file send successfully >> request statisfied')
+        else:
             # sending as media group if files are not too long
             # pyrogram doesnt support InputMediaPhotot to use BytesIO
             # until its added to the library going for temporary fix
-        else:
             # starting folder creartion with message id
             if not os.path.isdir('./FILES'):
                 LOGGER.debug('WEB_SCRS --> ./FILES folder not found >> creating new ')
@@ -257,7 +259,7 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
                 with open(f'{location}/{byte_objects.name}', 'wb') as writer:
                     writer.write(byte_objects.getvalue())
                 byte_objects.close()
-            await random_message.edit(text='<b><i>Uploading...</b></i>')
+            await random_message.edit(text='<b><i>uploading...</b></i>')
             location_to_send = []
             for count, images in enumerate(location_of_image, start=1):
                 location_to_send.append(InputMediaPhoto(

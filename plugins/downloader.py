@@ -78,11 +78,8 @@ async def cb_(client: Client, callback_query: CallbackQuery, retry=False):
         await msg.edit(text='Choose the prefered settings', reply_markup=msg.reply_markup)
 
     elif cb_data == 'options':
-        from pprint import pprint
-        pprint(msg.reply_markup.inline_keyboard)
         current_option = msg.reply_markup.inline_keyboard[-3][0].text
         options_to_change = "hide additional options ˄" if 'show' in current_option else 'show additional options ˅'
-        print(options_to_change)
         if 'hide' in options_to_change:
             msg.reply_markup.inline_keyboard.insert(
                 -2,

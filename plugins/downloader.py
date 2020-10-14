@@ -77,23 +77,16 @@ async def cb_(client: Client, callback_query: CallbackQuery, retry=False):
         msg.reply_markup.inline_keyboard[index_number][0]['text'] = page_to_change
         await msg.edit(text='Choose the prefered settings', reply_markup=msg.reply_markup)
 
-    elif cb_data == 'timer':
-        current_time = msg.reply_markup.inline_keyboard[-4][0].text
-        time_to_change = "wait for | BackgroundToLoad" if 'default' in current_time else "wait for | default"
-        msg.reply_markup.inline_keyboard[-4][0]['text'] = time_to_change
-        await msg.edit(text='Choose the prefered settings', reply_markup=msg.reply_markup)
-
     elif cb_data == 'options':
+        from pprint import pprint
+        pprint(msg.reply_markup.inline_keyboard)
         current_option = msg.reply_markup.inline_keyboard[-3][0].text
         options_to_change = "hide additional options ˄" if 'show' in current_option else 'show additional options ˅'
+        print(options_to_change)
         if 'hide' in options_to_change:
             msg.reply_markup.inline_keyboard.insert(
                 -2,
                 [InlineKeyboardButton(text="resolution | 800x600", callback_data='res')]
-            )
-            msg.reply_markup.inline_keyboard.insert(
-                -2,
-                [InlineKeyboardButton(text='wait for | default', callback_data="timer")],
             )
             msg.reply_markup.inline_keyboard.insert(
                 -2,
@@ -104,15 +97,14 @@ async def cb_(client: Client, callback_query: CallbackQuery, retry=False):
             else:
                 index_to_change = 3
             msg.reply_markup.inline_keyboard[index_to_change][0]['text'] = options_to_change
-
         else:
-            for _ in range(3):
+            for _ in range(2):
                 msg.reply_markup.inline_keyboard.pop(-3)
             msg.reply_markup.inline_keyboard[-3][0]['text'] = options_to_change
         await msg.edit(text='Choose the prefered settings', reply_markup=msg.reply_markup)
 
     elif cb_data == "res":
-        current_res = msg.reply_markup.inline_keyboard[-5][0].text
+        current_res = msg.reply_markup.inline_keyboard[-4][0].text
         if '800' in current_res:
             res_to_change = "resolution | 1280x720"
         elif '1280' in current_res:
@@ -122,7 +114,7 @@ async def cb_(client: Client, callback_query: CallbackQuery, retry=False):
             res_to_change = "resolution | 640x480"
         else:
             res_to_change = "resolution | 800x600"
-        msg.reply_markup.inline_keyboard[-5][0]['text'] = res_to_change
+        msg.reply_markup.inline_keyboard[-4][0]['text'] = res_to_change
         await msg.edit(text='Choose the prefered settings', reply_markup=msg.reply_markup)
 
     elif cb_data == "format":

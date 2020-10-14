@@ -274,7 +274,6 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
             await client.send_media_group(
                 media=location_to_send,
                 chat_id=msg.chat.id,
-                reply_to_message_id=msg.reply_to_message.message_id,
                 disable_notification=True
                 )
             shutil.rmtree(location)
@@ -290,8 +289,7 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
                 )
             await client.send_photo(
                 photo=out,
-                chat_id=msg.chat.id,
-                reply_to_message_id=msg.reply_to_message.message_id
+                chat_id=msg.chat.id
                 )
             LOGGER.info('WEB_SCRS --> photo send successfully >> request statisfied')
             return
@@ -302,8 +300,8 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
             )
             await client.send_document(
                 document=out,
-                chat_id=msg.chat.id,
-                reply_to_message_id=msg.reply_to_message.message_id
+                chat_id=msg.chat.id
             )
             LOGGER.debug('WEB_SCRS --> document send successfully >> request statisfied')
+    await random_message.delete()
     queue.remove(link)

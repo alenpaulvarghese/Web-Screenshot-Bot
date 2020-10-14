@@ -1,3 +1,6 @@
+# (c) AlenPaulVarghese
+# -*- coding: utf-8 -*-
+
 from pyrogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,

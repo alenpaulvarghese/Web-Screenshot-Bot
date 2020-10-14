@@ -1,11 +1,20 @@
-from plugins.logger import logging  # pylint:disable=import-error
-from http.client import BadStatusLine, ResponseNotReady
-from pyrogram import Client
+# (c) AlenPaulVarghese
+# -*- coding: utf-8 -*-
+
+from http.client import (
+    BadStatusLine,
+    ResponseNotReady
+)
 from pyrogram.types import (
     Message,
     InputMediaPhoto
 )
-from pyppeteer import launch, errors
+from pyppeteer import (
+    launch,
+    errors
+)
+from plugins.logger import logging  # pylint:disable=import-error
+from pyrogram import Client
 from zipfile import ZipFile
 from typing import List
 from PIL import Image
@@ -17,7 +26,7 @@ import os
 
 
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(10)
+LOGGER.setLevel(logging.INFO)
 
 
 class Printer(object):
@@ -140,7 +149,7 @@ async def screenshot_driver(printer: Printer, tasks=[]) -> bytes:
     else:
         LOGGER.info('WEB_SCRS --> no browser object exists >> creating new')
         browser = await launch(
-            headless=False,
+            headless=True,
             logLevel=50
         )
         tasks.append(browser)
@@ -172,17 +181,22 @@ async def screenshot_driver(printer: Printer, tasks=[]) -> bytes:
             raise ResponseNotReady("Not a valid link 😓🤔")
         finally:
             await page.close()
-    end_file = await launch_chrome()
-    if len(await browser.pages()) == 1:
-        LOGGER.info('WEB_SCRS --> no task pending >> closing browser object')
-        tasks.remove(browser)
-        await browser.close()
-    elif len(await browser.pages()) > 2:
-        LOGGER.info('WEB_SCRS --> task pending >> leaving browser intact')
-    return end_file
+    try:
+        end_file = await launch_chrome()
+        return end_file
+    except Exception as e:
+        raise ResponseNotReady(e)
+    finally:
+        if len(await browser.pages()) == 1:
+            LOGGER.info('WEB_SCRS --> no task pending >> closing browser object')
+            await asyncio.sleep(1)
+            tasks.remove(browser)
+            await browser.close()
+        elif len(await browser.pages()) > 2:
+            LOGGER.info('WEB_SCRS --> task pending >> leaving browser intact')
 
 
-async def primary_task(client: Client, msg: Message, queue=[]) -> bytes:
+async def primary_task(client: Client, msg: Message, queue=[]) -> None:
     link = msg.reply_to_message.text
     queue.append(link)
     LOGGER.debug('WEB_SCRS --> new request >> processing settings')
@@ -204,17 +218,18 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> bytes:
     await random_message.edit(text='<b><i>rendering.</b></i>')
     # await browser.close()
     try:
-        out = await screenshot_driver(printer)
+        out = io.BytesIO(await screenshot_driver(printer))
+        out.name = printer.name
     except ResponseNotReady as e:
         await random_message.edit(f'<b>{e}</b>')
         return
-    if printer.fullpage and printer.fullpage:
+    if printer.split and printer.fullpage:
         LOGGER.debug('WEB_SCRS --> split setting detected -> spliting images')
         await random_message.edit(text='<b><i>spliting Images...</b></i>')
-        location_of_image = await split_func(io.BytesIO(out), printer.type)
+        location_of_image = await split_func(out, printer.type)
         LOGGER.debug('WEB_SCRS --> image splited successfully')
         # spliting finished
-        if len(location_of_image) > 20:
+        if len(location_of_image) > 10:
             LOGGER.debug('WEB_SCRS --> found split pieces more than 20 >> zipping file')
             await random_message.edit(text='<b>detected images more than 20\n\n<i>Zipping...</i></b>')
             await asyncio.sleep(0.1)
@@ -223,17 +238,8 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> bytes:
             LOGGER.debug('WEB_SCRS --> zipping completed >> sending file')
             #  finished zipping and sending the zipped file as document
             await random_message.edit(text='<b><i>Uploading...</b></i>')
-            await client.send_chat_action(
-                msg.chat.id,
-                "upload_document"
-                )
-            await client.send_document(
-                document=zipped_file,
-                chat_id=msg.chat.id,
-                reply_to_message_id=msg.reply_to_message.message_id
-                )
+            out = zipped_file
             LOGGER.debug('WEB_SCRS --> file send successfully >> request statisfied')
-            zipped_file.close()
             # sending as media group if files are not too long
             # pyrogram doesnt support InputMediaPhotot to use BytesIO
             # until its added to the library going for temporary fix
@@ -258,22 +264,44 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> bytes:
                     media=f'{location}/{images.name}',
                     caption=str(count)
                     ))
-            sent_so_far = 0
             # sending 10 at a time
-            while sent_so_far <= len(location_to_send):
-                await client.send_chat_action(
-                    msg.chat.id,
-                    "upload_photo"
-                    )
-                await client.send_media_group(
-                    media=location_to_send[sent_so_far:sent_so_far+10],
-                    chat_id=msg.chat.id,
-                    reply_to_message_id=msg.reply_to_message.message_id,
-                    disable_notification=True
-                    )
-                sent_so_far += 10
-                await asyncio.sleep(0.1)
+            await client.send_chat_action(
+                msg.chat.id,
+                "upload_photo"
+                )
+            await client.send_media_group(
+                media=location_to_send,
+                chat_id=msg.chat.id,
+                reply_to_message_id=msg.reply_to_message.message_id,
+                disable_notification=True
+                )
             shutil.rmtree(location)
             LOGGER.debug('WEB_SCRS --> mediagroup send successfully >> request statisfied')
+            return
+    else:
+        LOGGER.debug('WEB_SCRS --> split setting not found >> sending directly')
+        await random_message.edit(text='<b><i>uploading...</b></i>')
+        if not printer.fullpage:
+            await client.send_chat_action(
+                msg.chat.id,
+                "upload_photo"
+                )
+            await client.send_photo(
+                photo=out,
+                chat_id=msg.chat.id,
+                reply_to_message_id=msg.reply_to_message.message_id
+                )
+            LOGGER.info('WEB_SCRS --> photo send successfully >> request statisfied')
+            return
+        else:
+            await client.send_chat_action(
+                msg.chat.id,
+                "upload_document"
+            )
+            await client.send_document(
+                document=out,
+                chat_id=msg.chat.id,
+                reply_to_message_id=msg.reply_to_message.message_id
+            )
+            LOGGER.debug('WEB_SCRS --> document send successfully >> request statisfied')
     queue.remove(link)
-    return out

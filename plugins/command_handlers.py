@@ -124,12 +124,12 @@ async def send_log(_: Client, message: Message) -> None:
         if sudo_user != message.chat.id:
             raise Exception
     except Exception:
-        LOGGER.debug('DEL__CMD --> status failed >> user not a sudo')
+        LOGGER.debug('LOG__CMD --> status failed >> user not a sudo')
         return
     if os.path.exists('debug.log'):
         await message.reply_document(
-            sudo_user,
             'debug.log'
         )
+        LOGGER.debug('LOG__CMD --> status sucess >> log send to the sudo_user')
     else:
         await message.reply_text("file not found")

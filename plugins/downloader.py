@@ -17,10 +17,9 @@ from pyrogram import (
     filters
 )
 from plugins.tool_bundle import (  # pylint:disable=import-error
+    metrics_graber,
     primary_task
 )
-
-
 from plugins.logger import logging  # pylint:disable=import-error
 import asyncio
 import shutil
@@ -140,11 +139,15 @@ async def cb_(client: Client, callback_query: CallbackQuery, retry=False):
         )
         await msg.delete()
     elif cb_data == 'statics':
-        await client.answer_callback_query(
-            callback_query.id,
-            text='Soory this features is not implemented yet😫😢😬!',
-            show_alert=True
+        await callback_query.answer(
+            'Processing the website...',
         )
+        await msg.delete()
+        t = await msg.reply_text('<b>processing...</b>')
+        main_paper = await metrics_graber(msg.reply_to_message.text)
+        await msg.reply_photo(main_paper)
+        await t.delete()
+        LOGGER.info('WEB_SCRS --> site_metrics >> request satisfied')
     elif cb_data == 'deleteno' or cb_data == 'deleteyes':
         if cb_data == 'deleteno':
             await msg.edit(text='process canceled')

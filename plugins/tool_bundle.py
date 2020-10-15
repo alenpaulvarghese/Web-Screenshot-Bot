@@ -13,11 +13,20 @@ from pyppeteer import (
     launch,
     errors
 )
+from typing import (
+    List,
+    Tuple,
+    Union
+)
+from PIL import (
+    Image,
+    ImageFont,
+    ImageDraw
+)
 from plugins.logger import logging  # pylint:disable=import-error
 from pyrogram import Client
 from zipfile import ZipFile
-from typing import List
-from PIL import Image
+from requests import get
 import asyncio
 import shutil
 import math
@@ -110,6 +119,42 @@ async def zipper(location_of_image: List[io.BytesIO]) -> io.BytesIO:
     return zipped_file
 
 
+async def metrics_graber(url: str) -> io.BytesIO:
+    printer = Printer('statics', url)
+    title, metrics = await screenshot_driver(printer)
+    return await draw(title[:12], metrics)
+
+
+async def draw(name: str, metrics: dict) -> io.BytesIO:
+    # DBSans Font is Licensed Under Open Font License
+    r = get('https://github.com/googlefonts/dm-fonts/raw/master/Sans/Exports/DMSans-Bold.ttf', allow_redirects=True)
+    font = ImageFont.truetype(io.BytesIO(r.content), size=1)
+    font_size = 1
+    # https://stackoverflow.com/a/4902713/13033981
+    while font.getsize(name)[0] < 0.90*265:
+        font_size += 1
+        font = ImageFont.truetype(io.BytesIO(r.content), font_size)
+    font_paper = Image.new("RGB", (265, 100), color="white")
+    draw = ImageDraw.Draw(font_paper)
+    w, h = font.getsize(name)
+    draw.text(((265-w)/2, (100-h)/2), name, font=font, fill="black")
+    main_paper = Image.open(io.BytesIO(get("https://telegra.ph/file/a6a7f2e40b5ef8b1e0562.png").content))
+    LOGGER.info('WEB_SCRS --> site_metrics >> main paper created')
+    await asyncio.sleep(0.2)
+    main_paper.paste(font_paper, (800, 460, 1065, 560))
+    font_paper.close()
+    metrics_paper = ''.join([f'{x} :- {y}\n' for x, y in metrics.items()])
+    draw = ImageDraw.Draw(main_paper)
+    font = ImageFont.truetype(io.BytesIO(r.content), 28)
+    draw.multiline_text((1185, 215), metrics_paper, fill="white", font=font, spacing=15)
+    LOGGER.info('WEB_SCRS --> site_metrics >> main paper rendered successfully')
+    return_object = io.BytesIO()
+    main_paper.save(return_object, format='png')
+    main_paper.close()
+    return_object.name = "@Webs-Screenshot.png"
+    return return_object
+
+
 async def settings_parser(link: str, inline_keyboard: list) -> Printer:
     # starting to recognize settings
     split, resolution = False, False
@@ -143,7 +188,7 @@ async def settings_parser(link: str, inline_keyboard: list) -> Printer:
     return printer
 
 
-async def screenshot_driver(printer: Printer, tasks=[]) -> bytes:
+async def screenshot_driver(printer: Printer, tasks=[]) -> Union[List, Tuple[str, dict]]:
     if len(tasks) != 0:
         LOGGER.info('WEB_SCRS --> browser object >> yielded from existing task list')
         browser = tasks[0]
@@ -156,7 +201,7 @@ async def screenshot_driver(printer: Printer, tasks=[]) -> bytes:
         )
         tasks.append(browser)
 
-    async def launch_chrome(retry=False) -> bytes:
+    async def launch_chrome(retry=False) -> Union[List, Tuple[str, dict]]:
         try:
             page = await browser.newPage()
             LOGGER.debug('WEB_SCRS --> created new page object >> now setting viewport')
@@ -166,6 +211,9 @@ async def screenshot_driver(printer: Printer, tasks=[]) -> bytes:
             LOGGER.debug('WEB_SCRS --> link fetched successfully >> now rendering page')
             if printer.type == "pdf":
                 end_file = await page.pdf(printer.arguments_to_print)
+            elif printer.type == "statics":
+                LOGGER.debug('WEB_SCRS --> site metrics detected >> now rendering image')
+                end_file = (await page.title(), await page.metrics())
             else:
                 end_file = await page.screenshot(printer.arguments_to_print)
             LOGGER.debug('WEB_SCRS --> page rendered successfully >> now closing page object')

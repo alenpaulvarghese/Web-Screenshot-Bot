@@ -11,7 +11,7 @@ from pyrogram.types import (
 )
 from pyppeteer import (
     launch,
-    errors,
+    errors
 )
 from typing import (
     List,

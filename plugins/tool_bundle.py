@@ -286,7 +286,6 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
         out.name = printer.name
     except Exception as e:
         await random_message.edit(f'<b>{e}</b>')
-        LOGGER.critical("Happened Here 3", e)
         queue.remove(link)
         return
     await random_message.edit(text='<b><i>rendering..</b></i>')
@@ -305,7 +304,6 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
             LOGGER.debug(f'WEB_SCRS:{printer.PID} --> zipping completed >> sending file')
             #  finished zipping and sending the zipped file as document
             out = zipped_file
-            LOGGER.debug(f'WEB_SCRS:{printer.PID} --> file send successfully >> request statisfied')
         else:
             # sending as media group if files are not too long
             # pyrogram doesnt support InputMediaPhotot to use BytesIO
@@ -342,28 +340,29 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
                 )
             shutil.rmtree(location)
             LOGGER.debug(f'WEB_SCRS:{printer.PID} --> mediagroup send successfully >> request statisfied')
-    else:
+            queue.remove(link)
+            return
+    if not printer.fullpage and not printer.type == 'pdf':
         LOGGER.debug(f'WEB_SCRS:{printer.PID} --> split setting not found >> sending directly')
         await random_message.edit(text='<b><i>uploading...</b></i>')
-        if not printer.fullpage:
-            await client.send_chat_action(
-                msg.chat.id,
-                "upload_photo"
-                )
-            await client.send_photo(
-                photo=out,
-                chat_id=msg.chat.id
-                )
-            LOGGER.info(f'WEB_SCRS:{printer.PID} --> photo send successfully >> request statisfied')
-        else:
-            await client.send_chat_action(
-                msg.chat.id,
-                "upload_document"
+        await client.send_chat_action(
+            msg.chat.id,
+            "upload_photo"
             )
-            await client.send_document(
-                document=out,
-                chat_id=msg.chat.id
+        await client.send_photo(
+            photo=out,
+            chat_id=msg.chat.id
             )
-            LOGGER.debug(f'WEB_SCRS:{printer.PID} --> document send successfully >> request statisfied')
+        LOGGER.info(f'WEB_SCRS:{printer.PID} --> photo send successfully >> request statisfied')
+    if (printer.type == 'pdf' or printer.fullpage):
+        await client.send_chat_action(
+            msg.chat.id,
+            "upload_document"
+        )
+        await client.send_document(
+            document=out,
+            chat_id=msg.chat.id
+        )
+        LOGGER.debug(f'WEB_SCRS:{printer.PID} --> document send successfully >> request statisfied')
     await random_message.delete()
     queue.remove(link)

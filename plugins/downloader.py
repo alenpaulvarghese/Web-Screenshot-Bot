@@ -144,10 +144,15 @@ async def cb_(client: Client, callback_query: CallbackQuery, retry=False):
         )
         await msg.delete()
         t = await msg.reply_text('<b>processing...</b>')
-        main_paper = await metrics_graber(msg.reply_to_message.text)
-        await msg.reply_photo(main_paper)
-        await t.delete()
-        LOGGER.info('WEB_SCRS --> site_metrics >> request satisfied')
+        try:
+            main_paper = await metrics_graber(msg.reply_to_message.text)
+            await msg.reply_photo(main_paper)
+            LOGGER.info('WEB_SCRS --> site_metrics >> request satisfied')
+        except Exception as e:
+            await msg.reply_text(f"<b>{e}</b>")
+            LOGGER.info(f'WEB_SCRS --> site_metrics -> request faild >> {e}')
+        finally:
+            await t.delete()
     elif cb_data == 'deleteno' or cb_data == 'deleteyes':
         if cb_data == 'deleteno':
             await msg.edit(text='process canceled')

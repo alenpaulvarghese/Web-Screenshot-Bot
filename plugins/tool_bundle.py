@@ -11,7 +11,7 @@ from pyrogram.types import (
 )
 from pyppeteer import (
     launch,
-    errors
+    errors,
 )
 from typing import (
     List,
@@ -23,10 +23,12 @@ from PIL import (
     ImageFont,
     ImageDraw
 )
+from pyppeteer.browser import Browser
 from plugins.logger import logging  # pylint:disable=import-error
 from pyrogram import Client
 from zipfile import ZipFile
 from requests import get
+from random import randint
 import asyncio
 import shutil
 import math
@@ -40,12 +42,13 @@ LOGGER.setLevel(logging.DEBUG)
 
 
 class Printer(object):
-    def __init__(self, _type: str, _link: str):
+    def __init__(self, _type: str, _link: str, _pid: int):
         self.resolution = {'width': 800, 'height': 600}
         self.type = _type
+        self.link = _link
+        self.PID = _pid
         self.fullpage = True
         self.split = False
-        self.link = _link
         self.name = f"@Webs-Screenshot.{self.type}"
 
     def __str__(self):
@@ -120,9 +123,10 @@ async def zipper(location_of_image: List[io.BytesIO]) -> io.BytesIO:
 
 
 async def metrics_graber(url: str) -> io.BytesIO:
-    printer = Printer('statics', url)
+    _pid = randint(100, 999)
+    printer = Printer('statics', url, _pid)
     title, metrics = await screenshot_driver(printer)
-    return await draw(title[:12], metrics)
+    return await draw(title[:25], metrics)
 
 
 async def draw(name: str, metrics: dict) -> io.BytesIO:
@@ -155,7 +159,7 @@ async def draw(name: str, metrics: dict) -> io.BytesIO:
     return return_object
 
 
-async def settings_parser(link: str, inline_keyboard: list) -> Printer:
+async def settings_parser(link: str, inline_keyboard: list, PID: int) -> Printer:
     # starting to recognize settings
     split, resolution = False, False
     for settings in inline_keyboard:
@@ -172,8 +176,8 @@ async def settings_parser(link: str, inline_keyboard: list) -> Printer:
         if "resolution" in text:
             resolution = text
         await asyncio.sleep(0.00001)
-    LOGGER.debug(f'WEB_SCRS --> setting confirmation >> ({_format}|{page_value})')
-    printer = Printer(_format, link)
+    LOGGER.debug(f'WEB_SCRS:{PID} --> setting confirmation >> ({_format}|{page_value})')
+    printer = Printer(_format, link, PID)
     if resolution:
         if '1280' in resolution:
             printer.resolution = {'width': 1280, 'height': 720}
@@ -188,121 +192,133 @@ async def settings_parser(link: str, inline_keyboard: list) -> Printer:
     return printer
 
 
-async def screenshot_driver(printer: Printer, tasks=[]) -> Union[List, Tuple[str, dict]]:
-    if len(tasks) != 0:
-        LOGGER.info('WEB_SCRS --> browser object >> yielded from existing task list')
-        browser = tasks[0]
-    else:
-        LOGGER.info('WEB_SCRS --> no browser object exists >> creating new')
+async def launch_chrome(retry=False) -> Browser:
+    try:
         browser = await launch(
             headless=True,
             logLevel=50,
-            executablePath=EXEC_PATH
-        )
-        tasks.append(browser)
+            executablePath=EXEC_PATH,
+            args=[
+                '--no-sandbox',
+                '--single-process',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--no-zygote'
+            ])
+        return browser
+    except BadStatusLine:
+        if not retry:
+            LOGGER.info('WEB_SCRS --> request failed -> Excepted BadStatusLine >> retrying...')
+            await asyncio.sleep(1.5)
+            await launch_chrome(True)
+        elif retry:
+            LOGGER.info('WEB_SCRS --> request failed -> Excepted BadStatusLine >> max retry exceeded')
+            raise ResponseNotReady("Soory the site is not responding")
 
-    async def launch_chrome(retry=False) -> Union[List, Tuple[str, dict]]:
+
+async def screenshot_driver(printer: Printer, tasks=[]) -> Union[List, Tuple[str, dict]]:
+    if len(tasks) != 0:
+        LOGGER.info(f'WEB_SCRS:{printer.PID} --> browser object >> yielded from existing task list')
+        browser = tasks[0]
+    else:
+        LOGGER.info(f'WEB_SCRS:{printer.PID} --> no browser object exists >> creating new')
         try:
-            page = await browser.newPage()
-            LOGGER.debug('WEB_SCRS --> created new page object >> now setting viewport')
-            await page.setViewport(printer.resolution)
-            LOGGER.debug('WEB_SCRS --> fetching received link')
-            await page.goto(printer.link)
-            LOGGER.debug('WEB_SCRS --> link fetched successfully >> now rendering page')
-            if printer.type == "pdf":
-                end_file = await page.pdf(printer.arguments_to_print)
-            elif printer.type == "statics":
-                LOGGER.debug('WEB_SCRS --> site metrics detected >> now rendering image')
-                end_file = (await page.title(), await page.metrics())
-            else:
-                end_file = await page.screenshot(printer.arguments_to_print)
-            LOGGER.debug('WEB_SCRS --> page rendered successfully >> now closing page object')
-            return end_file
-        except BadStatusLine:
-            if not retry:
-                LOGGER.info('WEB_SCRS --> request failed -> Excepted BadStatusLine >> retrying...')
-                await asyncio.sleep(1.5)
-                await launch_chrome(True)
-            elif retry:
-                LOGGER.info('WEB_SCRS --> request failed -> Excepted BadStatusLine >> max retry exceeded')
-                raise ResponseNotReady("Soory the site is not responding")
-        except errors.PageError:
-            LOGGER.info('WEB_SCRS --> request failed -> Excepted PageError >> invalid link')
-            raise ResponseNotReady("Not a valid link 😓🤔")
-        finally:
-            await page.close()
+            browser = await launch_chrome()
+            tasks.append(browser)
+        except Exception as e:
+            LOGGER.critical("Happened Here 2 ", e)
+            raise ResponseNotReady(e)
+    page = await browser.newPage()
+    LOGGER.debug(f'WEB_SCRS:{printer.PID} --> created new page object >> now setting viewport')
+    await page.setViewport(printer.resolution)
+    LOGGER.debug(f'WEB_SCRS:{printer.PID} --> fetching received link')
     try:
-        end_file = await launch_chrome()
+        await page.goto(printer.link)
+        LOGGER.debug(f'WEB_SCRS:{printer.PID} --> link fetched successfully >> now rendering page')
+        if printer.type == "pdf":
+            end_file = await page.pdf(printer.arguments_to_print)
+        elif printer.type == "statics":
+            LOGGER.debug(f'WEB_SCRS:{printer.PID} --> site metrics detected >> now rendering image')
+            end_file = (await page.title(), await page.metrics())
+        else:
+            end_file = await page.screenshot(printer.arguments_to_print)
         return end_file
-    except Exception as e:
-        raise ResponseNotReady(e)
+    except errors.PageError:
+        LOGGER.info(f'WEB_SCRS:{printer.PID} --> request failed -> Excepted PageError >> invalid link')
+        raise ResponseNotReady("Not a valid link 😓🤔")
     finally:
+        await asyncio.sleep(2)
+        LOGGER.debug(f'WEB_SCRS:{printer.PID} --> page rendered successfully >> now closing page object')
+        await page.close()
         if len(await browser.pages()) == 1:
-            LOGGER.info('WEB_SCRS --> no task pending >> closing browser object')
-            await asyncio.sleep(1)
-            tasks.remove(browser)
+            LOGGER.info(f'WEB_SCRS:{printer.PID} --> no task pending >> closing browser object')
+            if browser in tasks:
+                tasks.remove(browser)
             await browser.close()
-        elif len(await browser.pages()) > 2:
-            LOGGER.info('WEB_SCRS --> task pending >> leaving browser intact')
+        elif len(await browser.pages()) < 2:
+            LOGGER.info(f'WEB_SCRS:{printer.PID} --> task pending >> leaving browser intact')
 
 
 async def primary_task(client: Client, msg: Message, queue=[]) -> None:
+    _pid = randint(100, 999)
     link = msg.reply_to_message.text
     queue.append(link)
-    LOGGER.debug('WEB_SCRS --> new request >> processing settings')
+    LOGGER.debug(f'WEB_SCRS:{_pid} --> new request >> processing settings')
     if len(queue) > 2:
         await msg.edit("<b>You are in the queue wait for a bit ;)</b>")
         while len(queue) > 2:
             await asyncio.sleep(2)
     random_message = await msg.edit(text='<b><i>processing...</b></i>')
-    printer = await settings_parser(link, msg.reply_markup.inline_keyboard)
+    printer = await settings_parser(link, msg.reply_markup.inline_keyboard, _pid)
     # logging the request into a specific group or channel
     try:
         log = int(os.environ["LOG_GROUP"])
-        LOGGER.debug('WEB_SCRS --> LOG GROUP FOUND >> sending log')
+        LOGGER.debug(f'WEB_SCRS:{printer.PID} --> LOG GROUP FOUND >> sending log')
         await client.send_message(
             log,
             f'```{msg.chat.username}```\n{printer.__str__()}')
     except Exception as e:
-        LOGGER.debug(f'WEB_SCRS --> LOGGING FAILED >> {e}')
+        LOGGER.debug(f'WEB_SCRS:{printer.PID} --> LOGGING FAILED >> {e}')
     await random_message.edit(text='<b><i>rendering.</b></i>')
     # await browser.close()
     try:
         out = io.BytesIO(await screenshot_driver(printer))
         out.name = printer.name
-    except ResponseNotReady as e:
+    except Exception as e:
         await random_message.edit(f'<b>{e}</b>')
+        LOGGER.critical("Happened Here 3", e)
+        queue.remove(link)
         return
     await random_message.edit(text='<b><i>rendering..</b></i>')
     if printer.split and printer.fullpage:
-        LOGGER.debug('WEB_SCRS --> split setting detected -> spliting images')
+        LOGGER.debug(f'WEB_SCRS:{printer.PID} --> split setting detected -> spliting images')
         await random_message.edit(text='<b><i>spliting images...</b></i>')
         location_of_image = await split_func(out, printer.type)
-        LOGGER.debug('WEB_SCRS --> image splited successfully')
+        LOGGER.debug(f'WEB_SCRS:{printer.PID} --> image splited successfully')
         # spliting finished
         if len(location_of_image) > 10:
-            LOGGER.debug('WEB_SCRS --> found split pieces more than 10 >> zipping file')
+            LOGGER.debug(f'WEB_SCRS:{printer.PID} --> found split pieces more than 10 >> zipping file')
             await random_message.edit(text='<b>detected images more than 10\n\n<i>Zipping...</i></b>')
             await asyncio.sleep(0.1)
             # zipping if length is too high
             zipped_file = await zipper(location_of_image)
-            LOGGER.debug('WEB_SCRS --> zipping completed >> sending file')
+            LOGGER.debug(f'WEB_SCRS:{printer.PID} --> zipping completed >> sending file')
             #  finished zipping and sending the zipped file as document
             out = zipped_file
-            LOGGER.debug('WEB_SCRS --> file send successfully >> request statisfied')
+            LOGGER.debug(f'WEB_SCRS:{printer.PID} --> file send successfully >> request statisfied')
         else:
             # sending as media group if files are not too long
             # pyrogram doesnt support InputMediaPhotot to use BytesIO
             # until its added to the library going for temporary fix
             # starting folder creartion with message id
             if not os.path.isdir('./FILES'):
-                LOGGER.debug('WEB_SCRS --> ./FILES folder not found >> creating new ')
+                LOGGER.debug(f'WEB_SCRS:{printer.PID} --> ./FILES folder not found >> creating new ')
                 os.mkdir('./FILES')
             location = f"./FILES/{str(msg.chat.id)}/{str(msg.message_id)}"
             if not os.path.isdir(location):
-                LOGGER.debug(f'WEB_SCRS --> user folder not found >> creating {location}')
+                LOGGER.debug(f'WEB_SCRS:{printer.PID} --> user folder not found >> creating {location}')
                 os.makedirs(location)
-            LOGGER.debug('WEB_SCRS --> sending split pieces as media group')
+            LOGGER.debug(f'WEB_SCRS:{printer.PID} --> sending split pieces as media group')
             for byte_objects in location_of_image:
                 with open(f'{location}/{byte_objects.name}', 'wb') as writer:
                     writer.write(byte_objects.getvalue())
@@ -325,10 +341,9 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
                 disable_notification=True
                 )
             shutil.rmtree(location)
-            LOGGER.debug('WEB_SCRS --> mediagroup send successfully >> request statisfied')
-            return
+            LOGGER.debug(f'WEB_SCRS:{printer.PID} --> mediagroup send successfully >> request statisfied')
     else:
-        LOGGER.debug('WEB_SCRS --> split setting not found >> sending directly')
+        LOGGER.debug(f'WEB_SCRS:{printer.PID} --> split setting not found >> sending directly')
         await random_message.edit(text='<b><i>uploading...</b></i>')
         if not printer.fullpage:
             await client.send_chat_action(
@@ -339,8 +354,7 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
                 photo=out,
                 chat_id=msg.chat.id
                 )
-            LOGGER.info('WEB_SCRS --> photo send successfully >> request statisfied')
-            return
+            LOGGER.info(f'WEB_SCRS:{printer.PID} --> photo send successfully >> request statisfied')
         else:
             await client.send_chat_action(
                 msg.chat.id,
@@ -350,6 +364,6 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
                 document=out,
                 chat_id=msg.chat.id
             )
-            LOGGER.debug('WEB_SCRS --> document send successfully >> request statisfied')
+            LOGGER.debug(f'WEB_SCRS:{printer.PID} --> document send successfully >> request statisfied')
     await random_message.delete()
     queue.remove(link)

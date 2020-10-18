@@ -91,31 +91,6 @@ async def delete(_: Client, message: Message) -> None:
         return
 
 
-@Client.on_message(filters.command(["report"]) & filters.private)
-async def report(client: Client, message: Message) -> None:
-    LOGGER.debug(f"USED_CMD --> /report command >> @{message.from_user.username}")
-    try:
-        sudo_user = int(os.environ["SUDO_USER"])
-    except Exception:
-        LOGGER.debug('_REPORT_ --> status failed >> no sudo user found')
-        return
-    if message.reply_to_message is not None:
-        if message.reply_to_message.from_user.is_self:
-            message_to_send = message.reply_to_message.text
-            await client.send_message(
-                sudo_user,
-                message_to_send
-            )
-            LOGGER.debug('_REPORT_ --> status success >> report send')
-            await message.reply_text("report successfully send")
-        else:
-            LOGGER.debug('_REPORT_ --> status failed >> possible spamming')
-            await message.reply_text("don't spam please")
-    else:
-        LOGGER.debug('_REPORT_ --> status failed >> no message argument found')
-        await message.reply_text("just tag the error message and use /report command")
-
-
 @Client.on_message(filters.command(['debug', 'log']) & filters.private)
 async def send_log(_: Client, message: Message) -> None:
     LOGGER.debug(f"USED_CMD --> /debug command >> @{message.from_user.username}")

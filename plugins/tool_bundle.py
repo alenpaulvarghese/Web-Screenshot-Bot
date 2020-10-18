@@ -226,7 +226,7 @@ async def screenshot_driver(printer: Printer, tasks=[]) -> Union[List, Tuple[str
             browser = await launch_chrome()
             tasks.append(browser)
         except Exception as e:
-            LOGGER.critical("Happened Here 2 ", e)
+            LOGGER.critical(e)
             raise ResponseNotReady(e)
     page = await browser.newPage()
     LOGGER.debug(f'WEB_SCRS:{printer.PID} --> created new page object >> now setting viewport')

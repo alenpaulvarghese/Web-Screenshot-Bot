@@ -1,6 +1,10 @@
+# (c) AlenPaulVarghese
+# -*- coding: utf-8 -*-
+
 from pyrogram.types import (
     InlineKeyboardButton,
-    InlineKeyboardMarkup
+    InlineKeyboardMarkup,
+    Message
 )
 from pyrogram import (
     Client,
@@ -12,7 +16,7 @@ import os
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(10)
 
-blacklist = ['drive.google.com', 'tor.checker.in']
+BLACKLIST = ['drive.google.com', 'tor.checker.in', 'youtube.com', 'youtu.be']
 HOME = InlineKeyboardMarkup([
             [InlineKeyboardButton(text='Format - PDF', callback_data='format')],
             [InlineKeyboardButton(text='Page - Full', callback_data="page")],
@@ -21,41 +25,40 @@ HOME = InlineKeyboardMarkup([
             [InlineKeyboardButton(text='▫️ start render ▫️', callback_data="render")],
             [InlineKeyboardButton(text='cancel', callback_data="cancel")]
                             ])
-format_for_logging = "Request from {name} aka @{user}\n\nQuery : {link}\n\nSettings Used : \n {settings}"
 
 
 @Client.on_message(filters.command(["start"]))
-async def start(client, message):
+async def start(_: Client, message: Message) -> None:
     LOGGER.debug(f"USED_CMD --> /start command >> @{message.from_user.username}")
-    await client.send_message(
-        chat_id=message.chat.id,
-        text="Please Send Any Link",
-        reply_to_message_id=message.message_id
+    await message.reply_text(
+        f"<b>Hi {message.from_user.first_name} 👋\n"
+        "I can render website of a given link to either PDF or PNG/JPEG</b>",
+        quote=True,
+        reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("❓ About", callback_data="about_cb")
+            ]
+        ])
     )
 
 
-@Client.on_message(filters.command(["feedback"]))
-async def feedback(client, message):
-    LOGGER.debug(f"USED_CMD --> /feedback command >> @{message.from_user.username}")
-    await client.send_message(
-        chat_id=message.chat.id,
-        text="for suggetions and feedbacks contact @STARKTM1",
-        reply_to_message_id=message.message_id
-    )
-
-
-@Client.on_message(filters.command(["notworking"]))
-async def notworking(client, message):
-    LOGGER.debug(f"USED_CMD --> /notworking command >> @{message.from_user.username}")
-    await client.send_message(
-        chat_id=message.chat.id,
-        text="Make sure Your Request has http or https prefix",
-        reply_to_message_id=message.message_id
+@Client.on_message(filters.command(["about", 'feedback']))
+async def feedback(_: Client, message: Message) -> None:
+    LOGGER.debug(f"USED_CMD --> /about command >> @{message.from_user.username}")
+    await message.reply_text(
+        text="This project is open ❤️ source",
+        reply_markup=InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("👨🏻‍🦯 Source", url="https://github.com/alenpaul2001/Web-Screenshot-Bot"),
+                InlineKeyboardButton("❓ Bug Report", url="https://github.com/alenpaul2001/Web-Screenshot-Bot/issues")],
+            [InlineKeyboardButton(
+                "🌃 Profile Icon Credit",
+                url="https://www.goodfon.com/wallpaper/art-vector-background-illustration-minimalism-angga-tanta-12.html")]
+            ])
     )
 
 
 @Client.on_message(filters.command(["delete"]) & filters.private)
-async def deleter_(client, message):
+async def delete(_: Client, message: Message) -> None:
     LOGGER.debug(f"USED_CMD --> /delete command >> @{message.from_user.username}")
     try:
         sudo_user = int(os.environ["SUDO_USER"])
@@ -71,9 +74,8 @@ async def deleter_(client, message):
                     writer.write(str(root)+'\n\n'+str(dirs)+'\n\n'+str(files))
             if os.path.isfile('walk.txt'):
                 LOGGER.debug('DEL__CMD --> status pending >> sending file')
-                await client.send_document(
+                await message.reply_document(
                     document='walk.txt',
-                    chat_id=message.chat.id
                 )
                 await random_message.delete()
                 os.remove('walk.txt')
@@ -89,45 +91,20 @@ async def deleter_(client, message):
         return
 
 
-@Client.on_message(filters.command(["report"]) & filters.private)
-async def delete(client, message):
-    LOGGER.debug(f"USED_CMD --> /report command >> @{message.from_user.username}")
-    try:
-        sudo_user = int(os.environ["SUDO_USER"])
-    except Exception:
-        LOGGER.debug('_REPORT_ --> status failed >> no sudo user found')
-        return
-    if message.reply_to_message is not None:
-        if message.reply_to_message.from_user.is_self:
-            message_to_send = message.reply_to_message.text
-            await client.send_message(
-                sudo_user,
-                message_to_send
-            )
-            LOGGER.debug('_REPORT_ --> status success >> report send')
-            await message.reply_text("report successfully send")
-        else:
-            LOGGER.debug('_REPORT_ --> status failed >> possible spamming')
-            await message.reply_text("don't spam please")
-    else:
-        LOGGER.debug('_REPORT_ --> status failed >> no message argument found')
-        await message.reply_text("just tag the error message and use /report command")
-
-
 @Client.on_message(filters.command(['debug', 'log']) & filters.private)
-async def send_log(client, message):
+async def send_log(_: Client, message: Message) -> None:
     LOGGER.debug(f"USED_CMD --> /debug command >> @{message.from_user.username}")
     try:
         sudo_user = int(os.environ["SUDO_USER"])
         if sudo_user != message.chat.id:
             raise Exception
     except Exception:
-        LOGGER.debug('DEL__CMD --> status failed >> user not a sudo')
+        LOGGER.debug('LOG__CMD --> status failed >> user not a sudo')
         return
     if os.path.exists('debug.log'):
-        await client.send_document(
-            sudo_user,
+        await message.reply_document(
             'debug.log'
         )
+        LOGGER.debug('LOG__CMD --> status sucess >> log send to the sudo_user')
     else:
         await message.reply_text("file not found")

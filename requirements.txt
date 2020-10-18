@@ -3,3 +3,4 @@ Pillow
 wheel
 tgcrypto
 pyppeteer
+requests

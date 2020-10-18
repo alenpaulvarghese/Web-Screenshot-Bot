@@ -3,7 +3,7 @@ from creds import my
 
 plugins = dict(
         root="plugins"
-    )
+)
 app = Client(
     "Webshot Bot",
     bot_token=my.BOT_TOKEN,
@@ -11,4 +11,5 @@ app = Client(
     api_hash=my.API_HASH,
     plugins=plugins
 )
+
 app.run()

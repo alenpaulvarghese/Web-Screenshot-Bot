@@ -210,7 +210,7 @@ async def launch_chrome(retry=False) -> Browser:
         if not retry:
             LOGGER.info('WEB_SCRS --> request failed -> Excepted BadStatusLine >> retrying...')
             await asyncio.sleep(1.5)
-            await launch_chrome(True)
+            return await launch_chrome(True)
         elif retry:
             LOGGER.info('WEB_SCRS --> request failed -> Excepted BadStatusLine >> max retry exceeded')
             raise ResponseNotReady("Soory the site is not responding")

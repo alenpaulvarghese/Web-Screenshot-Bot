@@ -338,6 +338,7 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
                 chat_id=msg.chat.id,
                 disable_notification=True
                 )
+            out.close()
             shutil.rmtree(location)
             LOGGER.debug(f'WEB_SCRS:{printer.PID} --> mediagroup send successfully >> request statisfied')
             queue.remove(link)
@@ -364,5 +365,6 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
             chat_id=msg.chat.id
         )
         LOGGER.debug(f'WEB_SCRS:{printer.PID} --> document send successfully >> request statisfied')
+    out.close()
     await random_message.delete()
     queue.remove(link)

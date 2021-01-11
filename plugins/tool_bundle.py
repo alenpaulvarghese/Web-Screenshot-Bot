@@ -264,7 +264,6 @@ async def screenshot_driver(
             f"WEB_SCRS:{printer.PID} --> link fetched successfully -> set filename({printer.filename}) >> now rendering page"
         )
         if printer.type == "pdf":
-            print(printer.filename)
             await page.pdf(printer.arguments_to_print, path=printer.filename)
         elif printer.type == "statics":
             LOGGER.debug(

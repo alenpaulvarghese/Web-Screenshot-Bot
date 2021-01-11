@@ -143,8 +143,8 @@ async def cb_(client: Client, callback_query: CallbackQuery, retry=False):
         if "PDF" in current_format.text:
             format_to_change = "Format - PNG"
         elif "PNG" in current_format.text:
-            format_to_change = "Format - jpeg"
-        elif "jpeg" in current_format.text:
+            format_to_change = "Format - JPEG"
+        elif "JPEG" in current_format.text:
             format_to_change = "Format - PDF"
         msg.reply_markup.inline_keyboard[0][0]["text"] = format_to_change
         if "PNG" in format_to_change:

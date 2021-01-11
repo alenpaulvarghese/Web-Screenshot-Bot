@@ -3,15 +3,15 @@
 
 from http.client import BadStatusLine, ResponseNotReady
 from pyrogram.types import Message, InputMediaPhoto
-from pyppeteer import launch, errors
-from typing import List, Tuple, Union
 from PIL import Image, ImageFont, ImageDraw
 from pyppeteer.browser import Browser
+from pyppeteer import launch, errors
 from plugins.logger import logging  # pylint:disable=import-error
 from pyrogram import Client
 from zipfile import ZipFile
-from requests import get
+from typing import Optional
 from random import randint
+from requests import get
 import asyncio
 import shutil
 import math
@@ -27,11 +27,12 @@ LOGGER.setLevel(logging.DEBUG)
 class Printer(object):
     def __init__(self, _type: str, _link: str, _pid: int):
         self.resolution = {"width": 800, "height": 600}
+        self.PID = _pid
         self.type = _type
         self.link = _link
-        self.PID = _pid
-        self.fullpage = True
         self.split = False
+        self.fullpage = True
+        self.location = "./FILES"
         self.name = f"@Webs-Screenshot.{self.type}"
 
     def __str__(self):
@@ -58,14 +59,33 @@ class Printer(object):
             if self.fullpage:
                 arguments_for_image["fullPage"] = True
             return arguments_for_image
+        return {}
+
+    @property
+    def filename(self) -> str:
+        return self.location + self.name
+
+    async def allocate_folder(self, chat_id: int, message_id: int):
+        if not os.path.isdir("./FILES"):
+            LOGGER.debug(
+                f"WEB_SCRS:{self.PID} --> ./FILES folder not found >> creating new "
+            )
+            os.mkdir("./FILES")
+        location = f"./FILES/{str(chat_id)}/{str(message_id)}/"
+        if not os.path.isdir(location):
+            LOGGER.debug(
+                f"WEB_SCRS:{self.PID} --> user folder not found >> creating {location}"
+            )
+            os.makedirs(location)
+        self.location = location
 
 
 # https://stackoverflow.com/questions/25705773/image-cropping-tool-python
-async def split_func(out: io.BytesIO, _format: str) -> List[io.BytesIO]:
+async def split_func(location: str, filename: str, _format: str) -> list[str]:
     Image.MAX_IMAGE_PIXELS = None
     # https://coderwall.com/p/ovlnwa/use-python-and-pil-to-slice-an-image-vertically
     location_of_image = []
-    img = Image.open(out)
+    img = Image.open(filename)
     width, height = img.size
     upper, left, count, slice_size = 0, 0, 1, 800
     slices = int(math.ceil(height / slice_size))
@@ -83,25 +103,20 @@ async def split_func(out: io.BytesIO, _format: str) -> List[io.BytesIO]:
             location_to_save_slice = f"@Webs.ScreenCapture-{str(count)}.jpeg"
         else:
             location_to_save_slice = f"@Webs.ScreenCapture-{str(count)}.png"
-        split_out = io.BytesIO()
-        split_out.name = location_to_save_slice
-        working_slice.save(fp=split_out, format=_format)
-        location_of_image.append(split_out)
+        working_slice.save(fp=location + location_to_save_slice, format=_format)
+        location_of_image.append(location + location_to_save_slice)
         count += 1
-        await asyncio.sleep(0)
-    out.close()
+        await asyncio.sleep(0.001)
     return location_of_image
 
 
 # https://stackoverflow.com/a/44946732/13033981
-async def zipper(location_of_image: List[io.BytesIO]) -> io.BytesIO:
-    zipped_file = io.BytesIO()
-    with ZipFile(zipped_file, "w") as zipper:
-        for files in location_of_image:
-            zipper.writestr(files.name, files.getvalue())
-            files.close()
-    zipped_file.name = "@Webs-Screenshot.zip"
-    return zipped_file
+async def zipper(location: str, location_of_image: list[str]) -> str:
+    location += "@Webs-Screenshot.zip"
+    with ZipFile(location, "w") as zipper:
+        for per_file in location_of_image:
+            zipper.write(per_file)
+    return location
 
 
 async def metrics_graber(url: str) -> io.BytesIO:
@@ -125,6 +140,7 @@ async def draw(name: str, metrics: dict) -> io.BytesIO:
         font = ImageFont.truetype(io.BytesIO(r.content), font_size)
     font_paper = Image.new("RGB", (265, 100), color="white")
     draw = ImageDraw.Draw(font_paper)
+    await asyncio.sleep(0.2)
     w, h = font.getsize(name)
     draw.text(((265 - w) / 2, (100 - h) / 2), name, font=font, fill="black")
     main_paper = Image.open(
@@ -148,7 +164,7 @@ async def draw(name: str, metrics: dict) -> io.BytesIO:
 
 async def settings_parser(link: str, inline_keyboard: list, PID: int) -> Printer:
     # starting to recognize settings
-    split, resolution = False, False
+    split, resolution = False, ""
     for settings in inline_keyboard:
         text = settings[0].text
         if "Format" in text:
@@ -210,7 +226,7 @@ async def launch_chrome(retry=False) -> Browser:
 
 async def screenshot_driver(
     printer: Printer, tasks=[]
-) -> Union[List, Tuple[str, dict]]:
+) -> Optional[tuple[str, dict]]:  # pylint: disable=unsubscriptable-object
     if len(tasks) != 0:
         LOGGER.info(
             f"WEB_SCRS:{printer.PID} --> browser object >> yielded from existing task list"
@@ -238,15 +254,14 @@ async def screenshot_driver(
             f"WEB_SCRS:{printer.PID} --> link fetched successfully >> now rendering page"
         )
         if printer.type == "pdf":
-            end_file = await page.pdf(printer.arguments_to_print)
+            await page.pdf(printer.arguments_to_print, path=printer.filename)
         elif printer.type == "statics":
             LOGGER.debug(
                 f"WEB_SCRS:{printer.PID} --> site metrics detected >> now rendering image"
             )
-            end_file = (await page.title(), await page.metrics())
+            return (await page.title(), await page.metrics())
         else:
-            end_file = await page.screenshot(printer.arguments_to_print)
-        return end_file
+            await page.screenshot(printer.arguments_to_print, path=printer.filename)
     except errors.PageError:
         LOGGER.info(
             f"WEB_SCRS:{printer.PID} --> request failed -> Excepted PageError >> invalid link"
@@ -282,6 +297,7 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
             await asyncio.sleep(2)
     random_message = await msg.edit(text="<b><i>processing...</b></i>")
     printer = await settings_parser(link, msg.reply_markup.inline_keyboard, _pid)
+    asyncio.create_task(printer.allocate_folder(msg.chat.id, msg.message_id))
     # logging the request into a specific group or channel
     try:
         log = int(os.environ["LOG_GROUP"])
@@ -292,11 +308,10 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
     except Exception as e:
         LOGGER.debug(f"WEB_SCRS:{printer.PID} --> LOGGING FAILED >> {e}")
     await random_message.edit(text="<b><i>rendering.</b></i>")
-    # await browser.close()
     try:
-        out = io.BytesIO(await screenshot_driver(printer))
-        out.name = printer.name
-    except Exception as e:
+        await asyncio.wait_for(screenshot_driver(printer), 30)
+        out = printer.filename
+    except ModuleNotFoundError as e:
         await random_message.edit(f"<b>{e}</b>")
         queue.remove(link)
         return
@@ -306,7 +321,7 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
             f"WEB_SCRS:{printer.PID} --> split setting detected -> spliting images"
         )
         await random_message.edit(text="<b><i>spliting images...</b></i>")
-        location_of_image = await split_func(out, printer.type)
+        location_of_image = await split_func(printer.location, printer.filename, printer.type)
         LOGGER.debug(f"WEB_SCRS:{printer.PID} --> image splited successfully")
         # spliting finished
         if len(location_of_image) > 10:
@@ -318,50 +333,28 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
             )
             await asyncio.sleep(0.1)
             # zipping if length is too high
-            zipped_file = await zipper(location_of_image)
+            out = await zipper(printer.location, location_of_image)
             LOGGER.debug(
                 f"WEB_SCRS:{printer.PID} --> zipping completed >> sending file"
             )
             #  finished zipping and sending the zipped file as document
-            out = zipped_file
         else:
-            # sending as media group if files are not too long
-            # pyrogram doesnt support InputMediaPhotot to use BytesIO
-            # until its added to the library going for temporary fix
-            # starting folder creartion with message id
-            if not os.path.isdir("./FILES"):
-                LOGGER.debug(
-                    f"WEB_SCRS:{printer.PID} --> ./FILES folder not found >> creating new "
-                )
-                os.mkdir("./FILES")
-            location = f"./FILES/{str(msg.chat.id)}/{str(msg.message_id)}"
-            if not os.path.isdir(location):
-                LOGGER.debug(
-                    f"WEB_SCRS:{printer.PID} --> user folder not found >> creating {location}"
-                )
-                os.makedirs(location)
             LOGGER.debug(
                 f"WEB_SCRS:{printer.PID} --> sending split pieces as media group"
             )
-            for byte_objects in location_of_image:
-                with open(f"{location}/{byte_objects.name}", "wb") as writer:
-                    writer.write(byte_objects.getvalue())
-                byte_objects.close()
             await random_message.edit(text="<b><i>uploading...</b></i>")
             location_to_send = []
-            for count, images in enumerate(location_of_image, start=1):
+            for count, image in enumerate(location_of_image, start=1):
                 location_to_send.append(
                     InputMediaPhoto(
-                        media=f"{location}/{images.name}", caption=str(count)
+                        media=image, caption=str(count)
                     )
                 )
-            # sending 10 at a time
             await client.send_chat_action(msg.chat.id, "upload_photo")
             await client.send_media_group(
                 media=location_to_send, chat_id=msg.chat.id, disable_notification=True
             )
-            out.close()
-            shutil.rmtree(location)
+            shutil.rmtree(printer.location)
             LOGGER.debug(
                 f"WEB_SCRS:{printer.PID} --> mediagroup send successfully >> request statisfied"
             )
@@ -383,6 +376,6 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
         LOGGER.debug(
             f"WEB_SCRS:{printer.PID} --> document send successfully >> request statisfied"
         )
-    out.close()
     await random_message.delete()
+    shutil.rmtree(printer.location)
     queue.remove(link)

@@ -69,8 +69,8 @@ class Printer(object):
     async def slugify(self, text: str):
         """function to convert string to a valid file-name"""
         # https://stackoverflow.com/a/295466/13033981
-        text = sub(r'[^\w\s-]', '', text.lower())
-        self.name = sub(r'[-\s]+', '-', text).strip('-_')
+        text = sub(r"[^\w\s-]", "", text.lower())
+        self.name = sub(r"[-\s]+", "-", text).strip("-_")
 
     async def allocate_folder(self, chat_id: int, message_id: int):
         """allocate folder based on chat_id and message_id"""
@@ -297,15 +297,10 @@ async def screenshot_driver(
             )
 
 
-async def primary_task(client: Client, msg: Message, queue=[]) -> None:
+async def primary_task(client: Client, msg: Message) -> None:
     _pid = randint(100, 999)
     link = msg.reply_to_message.text
-    queue.append(link)
     LOGGER.debug(f"WEB_SCRS:{_pid} --> new request >> processing settings")
-    if len(queue) > 2:
-        await msg.edit("<b>You are in the queue wait for a bit ;)</b>")
-        while len(queue) > 2:
-            await asyncio.sleep(2)
     random_message = await msg.edit(text="<b><i>processing...</b></i>")
     printer = await settings_parser(link, msg.reply_markup.inline_keyboard, _pid)
     asyncio.create_task(printer.allocate_folder(msg.chat.id, msg.message_id))
@@ -324,7 +319,6 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
         out = printer.filename
     except Exception as e:
         await random_message.edit(f"<b>{e}</b>")
-        queue.remove(link)
         return
     await random_message.edit(text="<b><i>rendering..</b></i>")
     if printer.split and printer.fullpage:
@@ -332,7 +326,9 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
             f"WEB_SCRS:{printer.PID} --> split setting detected -> spliting images"
         )
         await random_message.edit(text="<b><i>spliting images...</b></i>")
-        location_of_image = await split_func(printer.location, printer.filename, printer.type)
+        location_of_image = await split_func(
+            printer.location, printer.filename, printer.type
+        )
         LOGGER.debug(f"WEB_SCRS:{printer.PID} --> image splited successfully")
         # spliting finished
         if len(location_of_image) > 10:
@@ -357,21 +353,20 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
             location_to_send = []
             for count, image in enumerate(location_of_image, start=1):
                 location_to_send.append(
-                    InputMediaPhoto(
-                        media=image, caption=str(count)
-                    )
+                    InputMediaPhoto(media=image, caption=str(count))
                 )
             await asyncio.gather(
                 client.send_chat_action(msg.chat.id, "upload_photo"),
                 client.send_media_group(
-                    media=location_to_send, chat_id=msg.chat.id, disable_notification=True
+                    media=location_to_send,
+                    chat_id=msg.chat.id,
+                    disable_notification=True,
                 ),
             )
             shutil.rmtree(printer.location)
             LOGGER.debug(
                 f"WEB_SCRS:{printer.PID} --> mediagroup send successfully >> request statisfied"
             )
-            queue.remove(link)
             return
     if not printer.fullpage and not printer.type == "pdf":
         LOGGER.debug(
@@ -395,4 +390,3 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
         )
     await random_message.delete()
     shutil.rmtree(printer.location)
-    queue.remove(link)

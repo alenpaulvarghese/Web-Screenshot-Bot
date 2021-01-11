@@ -311,7 +311,7 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
     try:
         await asyncio.wait_for(screenshot_driver(printer), 30)
         out = printer.filename
-    except ModuleNotFoundError as e:
+    except Exception as e:
         await random_message.edit(f"<b>{e}</b>")
         queue.remove(link)
         return
@@ -350,9 +350,11 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
                         media=image, caption=str(count)
                     )
                 )
-            await client.send_chat_action(msg.chat.id, "upload_photo")
-            await client.send_media_group(
-                media=location_to_send, chat_id=msg.chat.id, disable_notification=True
+            await asyncio.gather(
+                client.send_chat_action(msg.chat.id, "upload_photo"),
+                client.send_media_group(
+                    media=location_to_send, chat_id=msg.chat.id, disable_notification=True
+                ),
             )
             shutil.rmtree(printer.location)
             LOGGER.debug(
@@ -364,15 +366,19 @@ async def primary_task(client: Client, msg: Message, queue=[]) -> None:
         LOGGER.debug(
             f"WEB_SCRS:{printer.PID} --> split setting not found >> sending directly"
         )
-        await random_message.edit(text="<b><i>uploading...</b></i>")
-        await client.send_chat_action(msg.chat.id, "upload_photo")
-        await client.send_photo(photo=out, chat_id=msg.chat.id)
+        await asyncio.gather(
+            random_message.edit(text="<b><i>uploading...</b></i>"),
+            client.send_chat_action(msg.chat.id, "upload_photo"),
+            client.send_photo(photo=out, chat_id=msg.chat.id),
+        )
         LOGGER.info(
             f"WEB_SCRS:{printer.PID} --> photo send successfully >> request statisfied"
         )
     if printer.type == "pdf" or printer.fullpage:
-        await client.send_chat_action(msg.chat.id, "upload_document")
-        await client.send_document(document=out, chat_id=msg.chat.id)
+        await asyncio.gather(
+            client.send_chat_action(msg.chat.id, "upload_document"),
+            client.send_document(document=out, chat_id=msg.chat.id),
+        )
         LOGGER.debug(
             f"WEB_SCRS:{printer.PID} --> document send successfully >> request statisfied"
         )

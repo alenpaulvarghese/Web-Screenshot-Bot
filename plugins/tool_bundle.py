@@ -12,6 +12,7 @@ from zipfile import ZipFile
 from typing import Optional
 from random import randint
 from requests import get
+from re import sub
 import asyncio
 import shutil
 import math
@@ -33,7 +34,7 @@ class Printer(object):
         self.split = False
         self.fullpage = True
         self.location = "./FILES"
-        self.name = f"@Webs-Screenshot.{self.type}"
+        self.name = "@Webs-Screenshot"
 
     def __str__(self):
         res = f'{self.resolution["width"]}+{self.resolution["height"]}'
@@ -63,9 +64,16 @@ class Printer(object):
 
     @property
     def filename(self) -> str:
-        return self.location + self.name
+        return self.location + self.name + "." + self.type
+
+    async def slugify(self, text: str):
+        """function to convert string to a valid file-name"""
+        # https://stackoverflow.com/a/295466/13033981
+        text = sub(r'[^\w\s-]', '', text.lower())
+        self.name = sub(r'[-\s]+', '-', text).strip('-_')
 
     async def allocate_folder(self, chat_id: int, message_id: int):
+        """allocate folder based on chat_id and message_id"""
         if not os.path.isdir("./FILES"):
             LOGGER.debug(
                 f"WEB_SCRS:{self.PID} --> ./FILES folder not found >> creating new "
@@ -250,16 +258,19 @@ async def screenshot_driver(
     LOGGER.debug(f"WEB_SCRS:{printer.PID} --> fetching received link")
     try:
         await page.goto(printer.link)
+        title = await page.title()
+        await printer.slugify(title[:14])
         LOGGER.debug(
-            f"WEB_SCRS:{printer.PID} --> link fetched successfully >> now rendering page"
+            f"WEB_SCRS:{printer.PID} --> link fetched successfully -> set filename({printer.filename}) >> now rendering page"
         )
         if printer.type == "pdf":
+            print(printer.filename)
             await page.pdf(printer.arguments_to_print, path=printer.filename)
         elif printer.type == "statics":
             LOGGER.debug(
                 f"WEB_SCRS:{printer.PID} --> site metrics detected >> now rendering image"
             )
-            return (await page.title(), await page.metrics())
+            return (title, await page.metrics())
         else:
             await page.screenshot(printer.arguments_to_print, path=printer.filename)
     except errors.PageError:

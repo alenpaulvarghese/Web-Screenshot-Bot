@@ -316,8 +316,13 @@ async def primary_task(client: Client, msg: Message) -> None:
     try:
         await asyncio.wait_for(screenshot_driver(printer), 30)
         out = printer.filename
+    except asyncio.exceptions.TimeoutError:
+        await random_message.edit("<b>request timeout</b>")
+        LOGGER.debug(f"WEB_SCRS:{printer.PID} --> request failed >> timeout")
+        return
     except Exception as e:
         await random_message.edit(f"<b>{e}</b>")
+        LOGGER.debug(f"WEB_SCRS:{printer.PID} --> request failed >> {e}")
         return
     await random_message.edit(text="<b><i>rendering..</b></i>")
     if printer.split and printer.fullpage:

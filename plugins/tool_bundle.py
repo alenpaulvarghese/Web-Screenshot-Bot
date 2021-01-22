@@ -67,13 +67,13 @@ class Printer(object):
         return self.location + self.name + "." + self.type
 
     async def slugify(self, text: str):
-        """function to convert string to a valid file-name"""
+        """function to convert string to a valid file-name."""
         # https://stackoverflow.com/a/295466/13033981
         text = sub(r"[^\w\s-]", "", text.lower())
         self.name = sub(r"[-\s]+", "-", text).strip("-_")
 
     async def allocate_folder(self, chat_id: int, message_id: int):
-        """allocate folder based on chat_id and message_id"""
+        """allocate folder based on chat_id and message_id."""
         if not os.path.isdir("./FILES"):
             LOGGER.debug(
                 f"WEB_SCRS:{self.PID} --> ./FILES folder not found >> creating new "

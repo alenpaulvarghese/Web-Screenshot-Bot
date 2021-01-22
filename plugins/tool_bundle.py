@@ -210,6 +210,7 @@ async def launch_chrome(retry=False) -> Browser:
             logLevel=50,
             executablePath=EXEC_PATH,
             args=[
+                "ignoreHTTPSErrors=True",
                 "--no-sandbox",
                 "--single-process",
                 "--disable-dev-shm-usage",

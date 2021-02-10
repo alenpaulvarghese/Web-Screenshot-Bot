@@ -4,12 +4,12 @@
 from http.client import BadStatusLine, ResponseNotReady
 from pyrogram.types import Message, InputMediaPhoto
 from PIL import Image, ImageFont, ImageDraw
+from typing import Optional, List, Tuple
 from pyppeteer.browser import Browser
 from pyppeteer import launch, errors
 from plugins.logger import logging  # pylint:disable=import-error
 from pyrogram import Client
 from zipfile import ZipFile
-from typing import Optional
 from random import randint
 from requests import get
 from re import sub
@@ -67,13 +67,13 @@ class Printer(object):
         return self.location + self.name + "." + self.type
 
     async def slugify(self, text: str):
-        """function to convert string to a valid file-name."""
+        """Function to convert string to a valid file-name."""
         # https://stackoverflow.com/a/295466/13033981
         text = sub(r"[^\w\s-]", "", text.lower())
         self.name = sub(r"[-\s]+", "-", text).strip("-_")
 
     async def allocate_folder(self, chat_id: int, message_id: int):
-        """allocate folder based on chat_id and message_id."""
+        """Allocate folder based on chat_id and message_id."""
         if not os.path.isdir("./FILES"):
             LOGGER.debug(
                 f"WEB_SCRS:{self.PID} --> ./FILES folder not found >> creating new "
@@ -89,7 +89,7 @@ class Printer(object):
 
 
 # https://stackoverflow.com/questions/25705773/image-cropping-tool-python
-async def split_func(location: str, filename: str, _format: str) -> list[str]:
+async def split_func(location: str, filename: str, _format: str) -> List[str]:
     Image.MAX_IMAGE_PIXELS = None
     # https://coderwall.com/p/ovlnwa/use-python-and-pil-to-slice-an-image-vertically
     location_of_image = []
@@ -119,7 +119,7 @@ async def split_func(location: str, filename: str, _format: str) -> list[str]:
 
 
 # https://stackoverflow.com/a/44946732/13033981
-async def zipper(location: str, location_of_image: list[str]) -> str:
+async def zipper(location: str, location_of_image: List[str]) -> str:
     location += "@Webs-Screenshot.zip"
     with ZipFile(location, "w") as zipper:
         for per_file in location_of_image:
@@ -235,7 +235,7 @@ async def launch_chrome(retry=False) -> Browser:
 
 async def screenshot_driver(
     printer: Printer, tasks=[]
-) -> Optional[tuple[str, dict]]:  # pylint: disable=unsubscriptable-object
+) -> Optional[Tuple[str, dict]]:  # pylint: disable=unsubscriptable-object
     if len(tasks) != 0:
         LOGGER.info(
             f"WEB_SCRS:{printer.PID} --> browser object >> yielded from existing task list"

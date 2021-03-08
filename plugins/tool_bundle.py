@@ -11,7 +11,6 @@ from plugins.logger import logging  # pylint:disable=import-error
 from pyrogram import Client
 from zipfile import ZipFile
 from random import randint
-from requests import get
 from re import sub
 import asyncio
 import shutil
@@ -131,42 +130,38 @@ async def metrics_graber(url: str) -> io.BytesIO:
     _pid = randint(100, 999)
     printer = Printer("statics", url, _pid)
     title, metrics = await screenshot_driver(printer)
-    return await draw(title[:25], metrics)
-
-
-async def draw(name: str, metrics: dict) -> io.BytesIO:
-    # DBSans Font is Licensed Under Open Font License
-    r = get(
-        "https://github.com/googlefonts/dm-fonts/raw/master/Sans/Exports/DMSans-Bold.ttf",
-        allow_redirects=True,
+    return await asyncio.get_running_loop().run_in_executor(
+        None, draw, title[:25], metrics
     )
-    font = ImageFont.truetype(io.BytesIO(r.content), size=1)
+
+
+def draw(name: str, metrics: dict) -> io.BytesIO:
+    font = ImageFont.truetype("res/fonts/DMSans-Bold.ttf", size=1)
     font_size = 1
     # https://stackoverflow.com/a/4902713/13033981
-    while font.getsize(name)[0] < 0.90 * 265:
+    while font.getsize(name)[0] < 238.5:
         font_size += 1
-        font = ImageFont.truetype(io.BytesIO(r.content), font_size)
+        font = ImageFont.truetype(font="res/fonts/DMSans-Bold.ttf", size=font_size)
     font_paper = Image.new("RGB", (265, 100), color="white")
     draw = ImageDraw.Draw(font_paper)
-    await asyncio.sleep(0.2)
     w, h = font.getsize(name)
     draw.text(((265 - w) / 2, (100 - h) / 2), name, font=font, fill="black")
-    main_paper = Image.open(
-        io.BytesIO(get("https://telegra.ph/file/a6a7f2e40b5ef8b1e0562.png").content)
-    )
+    main_paper = Image.open("res/plain_paper.png")
     LOGGER.info("WEB_SCRS --> site_metrics >> main paper created")
-    await asyncio.sleep(0.2)
     main_paper.paste(font_paper, (800, 460, 1065, 560))
     font_paper.close()
     metrics_paper = "".join([f"{x} :- {y}\n" for x, y in metrics.items()])
     draw = ImageDraw.Draw(main_paper)
-    font = ImageFont.truetype(io.BytesIO(r.content), 28)
+    font = ImageFont.truetype("res/fonts/DMSans-Bold.ttf", size=28)
     draw.multiline_text((1185, 215), metrics_paper, fill="white", font=font, spacing=15)
     LOGGER.info("WEB_SCRS --> site_metrics >> main paper rendered successfully")
     return_object = io.BytesIO()
-    main_paper.save(return_object, format="png")
+    main_paper.save(
+        return_object,
+        format="png",
+    )
     main_paper.close()
-    return_object.name = "@Webs-Screenshot.png"
+    return_object.name = "@Web-Screenshot.png"
     return return_object
 
 
@@ -270,7 +265,22 @@ async def screenshot_driver(
             LOGGER.debug(
                 f"WEB_SCRS:{printer.PID} --> site metrics detected >> now rendering image"
             )
-            return (title, await page.metrics())
+            height, width, metrics = await asyncio.gather(
+                page.evaluate(
+                    "Math.max(document.body.scrollHeight, document.body.offsetHeight, "
+                    "document.documentElement.clientHeight, document.documentElement.scrollHeight, "
+                    "document.documentElement.offsetHeight);"
+                ),
+                page.evaluate(
+                    "Math.max(document.body.scrollWidth, document.body.offsetWidth, "
+                    "document.documentElement.clientWidth, document.documentElement.scrollWidth, "
+                    "document.documentElement.offsetWidth);"
+                ),
+                page.metrics(),
+            )
+            page_data = dict(Height=height, Width=width)
+            page_data.update(metrics)
+            return (title, page_data)
         else:
             await page.screenshot(printer.arguments_to_print, path=printer.filename)
     except errors.PageError:

@@ -9,7 +9,6 @@ import os
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(10)
 
-BLACKLIST = ["drive.google.com", "tor.checker.in", "youtube.com", "youtu.be"]
 HOME = InlineKeyboardMarkup(
     [
         [InlineKeyboardButton(text="Format - PDF", callback_data="format")],

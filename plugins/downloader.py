@@ -4,7 +4,6 @@
 # Thanks Spechide For Supporting Me
 
 from plugins.command_handlers import (  # pylint:disable=import-error
-    BLACKLIST,
     feedback,
     HOME,
 )
@@ -32,22 +31,15 @@ async def checker(client: Client, message):
     LOGGER.debug(
         f"LINK_RCV --> link received -> @{message.from_user.username} >> waiting for settings confirmation"
     )
-    # https://t.me/Python/774464
-    if [x for x in BLACKLIST if x in message.text]:
-        LOGGER.debug("LINK_RCV --> link ignored >> blackisted")
-        await message.reply_text("Please Dont Abuse This Service 😭😭")
-    else:
-        msg = await message.reply_text("working", True)
-        await msg.edit(text="Choose the prefered settings", reply_markup=HOME)
+    msg = await message.reply_text("working", True)
+    await msg.edit(text="Choose the prefered settings", reply_markup=HOME)
 
 
 @Client.on_callback_query()
-async def cb_(client: Client, callback_query: CallbackQuery, retry=False):
+async def cb_(client: Client, callback_query: CallbackQuery):
     cb_data = callback_query.data
     msg = callback_query.message
-    if cb_data == "render" or cb_data == "cancel" or cb_data == "statics":
-        pass
-    else:
+    if not cb_data == "render" or cb_data == "cancel" or cb_data == "statics":
         # cause @Spechide said so
         await client.answer_callback_query(
             callback_query.id,
@@ -164,18 +156,20 @@ async def cb_(client: Client, callback_query: CallbackQuery, retry=False):
         )
         await msg.delete()
     elif cb_data == "statics":
-        await callback_query.answer(
-            "Processing the website...",
+        await asyncio.gather(
+            callback_query.answer(
+                "Processing the website...",
+            ),
+            msg.delete()
         )
-        await msg.delete()
         t = await msg.reply_text("<b>processing...</b>")
         try:
             main_paper = await metrics_graber(msg.reply_to_message.text)
-            await msg.reply_photo(main_paper)
+            await msg.reply_document(main_paper)
             LOGGER.info("WEB_SCRS --> site_metrics >> request satisfied")
         except Exception as e:
             await msg.reply_text(f"<b>{e}</b>")
-            LOGGER.info(f"WEB_SCRS --> site_metrics -> request faild >> {e}")
+            LOGGER.info(f"WEB_SCRS --> site_metrics -> request failed >> {e}")
         finally:
             await t.delete()
     elif cb_data == "deleteno" or cb_data == "deleteyes":
@@ -184,7 +178,7 @@ async def cb_(client: Client, callback_query: CallbackQuery, retry=False):
             await asyncio.sleep(2)
             await msg.delete()
         else:
-            await msg.edit(text="deleteing")
+            await msg.edit(text="deleting")
             try:
                 shutil.rmtree("./FILES/")
             except Exception as e:

@@ -325,7 +325,7 @@ async def primary_task(client: Client, msg: Message) -> None:
         LOGGER.debug(f"WEB_SCRS:{printer.PID} --> LOGGING FAILED >> {e}")
     await random_message.edit(text="<b><i>rendering.</b></i>")
     try:
-        await asyncio.wait_for(screenshot_driver(printer), 30)
+        await asyncio.wait_for(screenshot_driver(printer), 60)
         out = printer.filename
     except asyncio.exceptions.TimeoutError:
         await random_message.edit("<b>request timeout</b>")

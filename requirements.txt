@@ -1,5 +1,4 @@
 pyrogram
-Pillow
-wheel
 tgcrypto
+Pillow --install-option=-O1
 pyppeteer

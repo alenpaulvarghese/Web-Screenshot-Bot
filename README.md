@@ -15,7 +15,7 @@ Telegram Bot that creates screenshot _[PNG/JPEG]_ or PDF of a given link. Can be
 3. 1280x720
 4. 2560x1440
 
-Splitting of long pages is available for png and jpeg, up to 10 images are sent as media group images above the count of 10 are zipped and send as a document.
+Splitting of long pages is available for png and jpeg.
 
 # Installing 
 
@@ -29,7 +29,7 @@ virtualenv -p /usr/bin/python3 venv
 . ./venv/bin/activate
 pip3 install -r requirements.txt
 # <Create creds.py appropriately>
-python3 main.py
+python3 __main__.py
 ```
 #### an example creds.py 👇
 ```py

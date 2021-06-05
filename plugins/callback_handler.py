@@ -3,53 +3,77 @@
 # Thanks CWPROJECTS For Helping Me
 # Thanks Spechide For Supporting Me
 
-from plugins.command_handlers import (  # pylint:disable=import-error
+from helper import mediagroup_gen, settings_parser, split_image
+from plugins.command_handler import (  # pylint:disable=import-error
     feedback,
-    HOME,
 )
 from pyrogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
 )
-from pyrogram import Client, filters
-from plugins.tool_bundle import (  # pylint:disable=import-error
-    metrics_graber,
-    primary_task,
-)
-from plugins.logger import logging  # pylint:disable=import-error
+from helper.printer import Printer
+from webshotbot import WebshotBot
+from pyrogram import filters
 import asyncio
-import shutil
-
-LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(10)
 
 
-@Client.on_message(
-    filters.regex(pattern="http[s]*://.+") & filters.private & ~filters.edited
-)
-async def checker(client: Client, message):
-    LOGGER.debug(
-        f"LINK_RCV --> link received -> @{message.from_user.username} >> waiting for settings confirmation"
+@WebshotBot.on_callback_query(filters.create(lambda _, __, c: c.data == "render"))
+async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
+    await callback_query.answer("processing your request")
+    message = await callback_query.message.edit("**processing...**")
+    printer = await settings_parser(
+        callback_query.message.reply_to_message.text,
+        callback_query.message.reply_markup.inline_keyboard,
     )
-    msg = await message.reply_text("working", True)
-    await msg.edit(text="Choose the prefered settings", reply_markup=HOME)
+    printer.allocate_folder(
+        callback_query.message.chat.id, callback_query.message.message_id
+    )
+    await message.edit("**rendering...**")
+    try:
+        await client.new_request(printer)
+    except Exception as e:
+        await message.edit(e)
+        return
+    await message.edit("**uploading...**")
+    if printer.split and printer.fullpage:
+        loc_of_images = await asyncio.get_event_loop().run_in_executor(
+            None, split_image, printer.location, printer.file, printer.type
+        )
+        for media_group in mediagroup_gen(loc_of_images):
+            await callback_query.message.reply_media_group(
+                media_group, disable_notification=True
+            )
+    elif printer.type == "pdf" or printer.fullpage:
+        await callback_query.message.reply_document(
+            printer.file,
+        )
+    elif not printer.fullpage:
+        await callback_query.message.reply_photo(
+            printer.file,
+        )
+    await message.delete()
 
 
-@Client.on_callback_query()
-async def cb_(client: Client, callback_query: CallbackQuery):
+@WebshotBot.on_callback_query(filters.create(lambda _, __, c: c.data == "statics"))
+async def statics_cb(client: WebshotBot, callback_query: CallbackQuery):
+    await callback_query.answer("processing")
+    printer = Printer("statics", callback_query.message.reply_to_message.text)
+    await client.new_request(printer)
+    await client.send_document(
+        callback_query.message.chat.id,
+        printer.file,
+    )
+    printer.file.close()  # type: ignore
+
+
+@WebshotBot.on_callback_query()
+async def keyboards_cb(_, callback_query: CallbackQuery):
     cb_data = callback_query.data
     msg = callback_query.message
-    if not cb_data == "render" or cb_data == "cancel" or cb_data == "statics":
+    if not cb_data == "cancel":
         # cause @Spechide said so
-        await client.answer_callback_query(
-            callback_query.id,
-        )
-    if cb_data == "render":
-        await client.answer_callback_query(
-            callback_query.id, text="Processing your request..!"
-        )
-        await primary_task(client, msg)
-    elif cb_data == "splits":
+        await callback_query.answer()
+    if cb_data == "splits":
         if "PDF" not in msg.reply_markup.inline_keyboard[0][0].text:
             index_number = 1
         current_boolean = msg.reply_markup.inline_keyboard[index_number][0]
@@ -151,41 +175,9 @@ async def cb_(client: Client, callback_query: CallbackQuery):
         )
 
     elif cb_data == "cancel":
-        await client.answer_callback_query(
-            callback_query.id, text="Canceled your request..!"
-        )
+        await callback_query.answer("Canceled your request..!")
         await msg.delete()
-    elif cb_data == "statics":
-        await asyncio.gather(
-            callback_query.answer(
-                "Processing the website...",
-            ),
-            msg.delete()
-        )
-        t = await msg.reply_text("<b>processing...</b>")
-        try:
-            main_paper = await metrics_graber(msg.reply_to_message.text)
-            await msg.reply_document(main_paper)
-            LOGGER.info("WEB_SCRS --> site_metrics >> request satisfied")
-        except Exception as e:
-            await msg.reply_text(f"<b>{e}</b>")
-            LOGGER.info(f"WEB_SCRS --> site_metrics -> request failed >> {e}")
-        finally:
-            await t.delete()
-    elif cb_data == "deleteno" or cb_data == "deleteyes":
-        if cb_data == "deleteno":
-            await msg.edit(text="process canceled")
-            await asyncio.sleep(2)
-            await msg.delete()
-        else:
-            await msg.edit(text="deleting")
-            try:
-                shutil.rmtree("./FILES/")
-            except Exception as e:
-                await msg.edit(text=e)
-            finally:
-                await asyncio.sleep(2)
-                await msg.delete()
+
     elif cb_data == "about_cb":
         await msg.delete()
-        await feedback(client, msg)
+        await feedback(_, msg)

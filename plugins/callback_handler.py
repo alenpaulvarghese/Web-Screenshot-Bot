@@ -1,7 +1,5 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
-# Thanks CWPROJECTS For Helping Me
-# Thanks Spechide For Supporting Me
 
 from helper import mediagroup_gen, settings_parser, split_image
 from plugins.command_handler import (  # pylint:disable=import-error
@@ -74,33 +72,37 @@ async def keyboards_cb(_, callback_query: CallbackQuery):
         # cause @Spechide said so
         await callback_query.answer()
     if cb_data == "splits":
-        if "PDF" not in msg.reply_markup.inline_keyboard[0][0].text:
-            index_number = 1
-        current_boolean = msg.reply_markup.inline_keyboard[index_number][0]
-        boolean_to_change = (
+        current_boolean = msg.reply_markup.inline_keyboard[-4][0]
+        msg.reply_markup.inline_keyboard[-4][0]["text"] = (
             "Split - No" if "Yes" in current_boolean.text else "Split - Yes"
         )
-        msg.reply_markup.inline_keyboard[index_number][0]["text"] = boolean_to_change
         await msg.edit(
             text="Choose the prefered settings", reply_markup=msg.reply_markup
         )
 
     elif cb_data == "page":
-        if "PDF" in msg.reply_markup.inline_keyboard[0][0].text:
-            index_number = 1
-        else:
-            index_number = 2
-        current_page = msg.reply_markup.inline_keyboard[index_number][0]
-        page_to_change = (
+        current_page = msg.reply_markup.inline_keyboard[1][0]
+        msg.reply_markup.inline_keyboard[1][0]["text"] = (
             "Page - Partial" if "Full" in current_page.text else "Page - Full"
         )
-        msg.reply_markup.inline_keyboard[index_number][0]["text"] = page_to_change
+        await msg.edit(
+            text="Choose the prefered settings", reply_markup=msg.reply_markup
+        )
+
+    elif cb_data == "load":
+        current_load = msg.reply_markup.inline_keyboard[2][0]
+        msg.reply_markup.inline_keyboard[2][0].text = (
+            "Load Control - Manual"
+            if "Auto" in current_load.text
+            else "Load Control - Auto"
+        )
         await msg.edit(
             text="Choose the prefered settings", reply_markup=msg.reply_markup
         )
 
     elif cb_data == "options":
-        current_option = msg.reply_markup.inline_keyboard[-3][0].text
+        current_option = msg.reply_markup.inline_keyboard[3][0].text
+        current_format = msg.reply_markup.inline_keyboard[0][0].text
         options_to_change = (
             "hide additional options ˄"
             if "show" in current_option
@@ -115,6 +117,11 @@ async def keyboards_cb(_, callback_query: CallbackQuery):
                     )
                 ],
             )
+            if "PDF" not in current_format:
+                msg.reply_markup.inline_keyboard.insert(
+                    -2,
+                    [InlineKeyboardButton(text="Split - No", callback_data="splits")],
+                )
             msg.reply_markup.inline_keyboard.insert(
                 -2,
                 [
@@ -123,33 +130,25 @@ async def keyboards_cb(_, callback_query: CallbackQuery):
                     )
                 ],
             )
-            if "PDF" in msg.reply_markup.inline_keyboard[0][0].text:
-                index_to_change = 2
-            else:
-                index_to_change = 3
-            msg.reply_markup.inline_keyboard[index_to_change][0][
-                "text"
-            ] = options_to_change
         else:
-            for _ in range(2):
+            for _ in range((2 if "PDF" in current_format else 3)):
                 msg.reply_markup.inline_keyboard.pop(-3)
-            msg.reply_markup.inline_keyboard[-3][0]["text"] = options_to_change
+        msg.reply_markup.inline_keyboard[3][0]["text"] = options_to_change
         await msg.edit(
             text="Choose the prefered settings", reply_markup=msg.reply_markup
         )
 
     elif cb_data == "res":
-        current_res = msg.reply_markup.inline_keyboard[-4][0].text
+        current_res = msg.reply_markup.inline_keyboard[4][0].text
         if "800" in current_res:
             res_to_change = "resolution | 1280x720"
         elif "1280" in current_res:
-            # cause asked by <ll>//𝚂𝚊𝚢𝚊𝚗𝚝𝚑//<ll>
             res_to_change = "resolution | 2560x1440"
         elif "2560" in current_res:
             res_to_change = "resolution | 640x480"
         else:
             res_to_change = "resolution | 800x600"
-        msg.reply_markup.inline_keyboard[-4][0]["text"] = res_to_change
+        msg.reply_markup.inline_keyboard[4][0]["text"] = res_to_change
         await msg.edit(
             text="Choose the prefered settings", reply_markup=msg.reply_markup
         )
@@ -158,18 +157,18 @@ async def keyboards_cb(_, callback_query: CallbackQuery):
         current_format = msg.reply_markup.inline_keyboard[0][0]
         if "PDF" in current_format.text:
             format_to_change = "Format - PNG"
+            if "hide" in msg.reply_markup.inline_keyboard[3][0].text:
+                msg.reply_markup.inline_keyboard.insert(
+                    -3,
+                    [InlineKeyboardButton(text="Split - No", callback_data="splits")],
+                )
         elif "PNG" in current_format.text:
             format_to_change = "Format - JPEG"
         elif "JPEG" in current_format.text:
             format_to_change = "Format - PDF"
+            if "hide" in msg.reply_markup.inline_keyboard[3][0].text:
+                msg.reply_markup.inline_keyboard.pop(-4)
         msg.reply_markup.inline_keyboard[0][0]["text"] = format_to_change
-        if "PNG" in format_to_change:
-            msg.reply_markup.inline_keyboard.insert(
-                1, [InlineKeyboardButton(text="Split - No", callback_data="splits")]
-            )
-        if "PDF" in format_to_change:
-            if "Split" in msg.reply_markup.inline_keyboard[1][0].text:
-                msg.reply_markup.inline_keyboard.pop(1)
         await msg.edit(
             text="Choose the prefered settings", reply_markup=msg.reply_markup
         )

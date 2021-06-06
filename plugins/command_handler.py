@@ -20,6 +20,11 @@ async def checker(_, message: Message):
                 [InlineKeyboardButton(text="Page - Full", callback_data="page")],
                 [
                     InlineKeyboardButton(
+                        text="Load Control - Auto", callback_data="load"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
                         text="show additional options ˅", callback_data="options"
                     )
                 ],

@@ -1,7 +1,7 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
-from typing import Union
+from typing import Optional, Union
 from re import sub
 import io
 import os
@@ -16,6 +16,7 @@ class Printer(object):
         self.link = _link
         self.split = False
         self.fullpage = True
+        self.render_control: Optional[bool] = False
         self.location: _LOC = "./FILES"
         self.name = "@Webs-Screenshot"
 

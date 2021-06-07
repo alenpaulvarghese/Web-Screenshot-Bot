@@ -34,8 +34,8 @@ class Worker(object):
                     break
                 if _browser is None:
                     _browser = await launch_browser()
-                await screenshot_engine(_browser, task.printer)  # type: ignore
-                task.fut_data.set_result(0)
+                await screenshot_engine(_browser, task.printer, task.user_lock)  # type: ignore
+                task.future_data.set_result(0)
                 _LOG.info(
                     "Took {:.2f} to statisfy the request".format(
                         time.perf_counter() - start
@@ -43,7 +43,7 @@ class Worker(object):
                 )
             except Exception as e:
                 _LOG.error("Excepted %s", e)
-                task.fut_data.set_exception(e)
+                task.future_data.set_exception(e)
                 if _browser is not None:
                     await _browser.close()
                     _browser = None

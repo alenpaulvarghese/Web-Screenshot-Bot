@@ -40,13 +40,40 @@ async def launch_browser(retry=False) -> Browser:
             _LOG.error("Launching browser failed due to %s, exiting...", e)
 
 
-async def screenshot_engine(browser: Browser, printer: Printer):
+async def screenshot_engine(
+    browser: Browser, printer: Printer, user_lock: asyncio.Event
+):
     page = await browser.newPage()
     await page.setViewport(printer.resolution)
     try:
-        await page.goto(printer.link)
+        await page.goto(printer.link, dict(timeout=60000))
         title = await page.title()
         printer.slugify(title[:14])
+        if printer.render_control is not None:
+            control = asyncio.create_task(
+                page.evaluate(
+                    """
+                    async function scroll(){
+                        let height = Math.max(
+                            document.body.scrollHeight,
+                            document.body.offsetHeight,
+                            document.documentElement.clientHeight,
+                            document.documentElement.scrollHeight,
+                            document.documentElement.offsetHeight);
+                        for (let i=0; i <= height; i += 10) {
+                            window.scrollTo(0, i);
+                            await new Promise(r => setTimeout(r, 1));
+                            }
+                    };
+                    scroll();
+                    """,
+                    force_expr=True,
+                )
+            )
+            if printer.render_control is False:
+                await control
+            await user_lock.wait()
+            control.cancel()
         if printer.type == "pdf":
             await page.pdf(printer.arguments_to_print, path=printer.file)
         elif printer.type == "statics":

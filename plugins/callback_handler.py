@@ -1,13 +1,10 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
+from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from helper import mediagroup_gen, settings_parser, split_image
 from plugins.command_handler import (  # pylint:disable=import-error
     feedback,
-)
-from pyrogram.types import (
-    CallbackQuery,
-    InlineKeyboardButton,
 )
 from helper.printer import Printer
 from webshotbot import WebshotBot
@@ -26,9 +23,16 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
     printer.allocate_folder(
         callback_query.message.chat.id, callback_query.message.message_id
     )
-    await message.edit("**rendering...**")
+    await message.edit(
+        "**rendering the website...**",
+        reply_markup=InlineKeyboardMarkup(
+            [[InlineKeyboardButton("render now", "release")]]
+        )
+        if printer.render_control
+        else None,
+    )
     try:
-        await client.new_request(printer)
+        await client.new_request(printer, callback_query.message.chat.id)
     except Exception as e:
         await message.edit(e)
         return
@@ -52,15 +56,28 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
     await message.delete()
 
 
+@WebshotBot.on_callback_query(filters.create(lambda _, __, c: c.data == "release"))
+async def release_cb(client: WebshotBot, callback_query: CallbackQuery):
+    event = client.get_request(callback_query.message.chat.id)
+    if event is not None:
+        event.set()
+        await callback_query.answer("rendering now")
+        await callback_query.message.edit_reply_markup(None)
+    else:
+        await callback_query.answer("please wait")
+
+
 @WebshotBot.on_callback_query(filters.create(lambda _, __, c: c.data == "statics"))
 async def statics_cb(client: WebshotBot, callback_query: CallbackQuery):
     await callback_query.answer("processing")
     printer = Printer("statics", callback_query.message.reply_to_message.text)
+    await callback_query.message.edit("**rendering the statics...**")
     await client.new_request(printer)
     await client.send_document(
         callback_query.message.chat.id,
         printer.file,
     )
+    await callback_query.message.delete()
     printer.file.close()  # type: ignore
 
 
@@ -91,11 +108,13 @@ async def keyboards_cb(_, callback_query: CallbackQuery):
 
     elif cb_data == "load":
         current_load = msg.reply_markup.inline_keyboard[2][0]
-        msg.reply_markup.inline_keyboard[2][0].text = (
-            "Load Control - Manual"
-            if "Auto" in current_load.text
-            else "Load Control - Auto"
-        )
+        if "None" in current_load.text:
+            text = "Auto"
+        elif "Auto" in current_load.text:
+            text = "Manual"
+        elif "Manual" in current_load.text:
+            text = "None"
+        msg.reply_markup.inline_keyboard[2][0].text = f"Load Control - {text}"
         await msg.edit(
             text="Choose the prefered settings", reply_markup=msg.reply_markup
         )

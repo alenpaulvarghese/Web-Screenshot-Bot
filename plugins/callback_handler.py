@@ -9,6 +9,7 @@ from plugins.command_handler import (  # pylint:disable=import-error
 from helper.printer import Printer
 from webshotbot import WebshotBot
 from pyrogram import filters
+from config import Config
 import asyncio
 
 
@@ -23,16 +24,28 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
     printer.allocate_folder(
         callback_query.message.chat.id, callback_query.message.message_id
     )
-    await message.edit(
-        "**rendering the website...**",
-        reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton("render now", "release")]]
-        )
-        if printer.render_control
-        else None,
-    )
+    await message.edit("**please wait you are in a queue...**")
     try:
-        await client.new_request(printer, callback_query.message.chat.id)
+        future = client.new_request(printer, callback_query.message.chat.id)
+        await message.edit(
+            "**rendering the website...**",
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton("render now", "release")]]
+            )
+            if printer.render_control
+            else None,
+        )
+        if Config.LOG_GROUP is not None:
+            log_id = (
+                await client.send_message(
+                    Config.LOG_GROUP,
+                    printer._get_logstr(
+                        callback_query.message.reply_to_message.from_user.id,
+                        callback_query.message.reply_to_message.from_user.first_name,
+                    ),
+                )
+            ).message_id
+        await future
     except Exception as e:
         await message.edit(e)
         return
@@ -54,6 +67,34 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
             printer.file,
         )
     await message.delete()
+    if Config.LOG_GROUP is not None:
+        first_row = [InlineKeyboardButton(x, f"rate-{log_id}-{x}") for x in range(1, 4)]
+        second_row = [
+            InlineKeyboardButton(x, f"rate-{log_id}-{x}")
+            if x != 6
+            else InlineKeyboardButton("❌", f"rate-{log_id}-no")
+            for x in range(4, 7)
+        ]
+        rate_message = await message.reply_text(
+            "please rate the render result",
+            reply_markup=InlineKeyboardMarkup([first_row, second_row]),
+        )
+        await asyncio.sleep(8)
+        await rate_message.delete()
+
+
+@WebshotBot.on_callback_query(filters.create(lambda _, __, c: "rate" in c.data))
+async def rate_cb(client: WebshotBot, callback_query: CallbackQuery):
+    await callback_query.answer("Thanks for the feedback")
+    _, message_id, text = callback_query.data.split("-")
+    current_text = (
+        await client.get_messages(Config.LOG_GROUP, int(message_id), replies=0)
+    ).text.markdown
+    current_text += f"\n|- Rating - > `{text}`"
+    await asyncio.gather(
+        client.edit_message_text(Config.LOG_GROUP, int(message_id), current_text),
+        callback_query.message.delete(),
+    )
 
 
 @WebshotBot.on_callback_query(filters.create(lambda _, __, c: c.data == "release"))

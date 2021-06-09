@@ -3,7 +3,7 @@ from pyrogram import Client
 from logger import logging
 from helper import Printer
 from typing import Dict, Optional
-from creds import my
+from config import Config
 import asyncio
 import signal
 
@@ -15,9 +15,9 @@ class WebshotBot(Client):
     def __init__(self):
         super().__init__(
             session_name="webshot-bot",
-            api_id=my.API_ID,
-            api_hash=my.API_HASH,
-            bot_token=my.BOT_TOKEN,
+            api_id=Config.API_ID,
+            api_hash=Config.API_HASH,
+            bot_token=Config.BOT_TOKEN,
             plugins=dict(root="plugins"),
         )
         self.request_cache: Dict[int, asyncio.Event] = {}

@@ -20,9 +20,13 @@ class Printer(object):
         self.location: _LOC = "./FILES"
         self.name = "@Webs-Screenshot"
 
-    def __str__(self):
-        res = f'{self.resolution["width"]}+{self.resolution["height"]}'
-        return f"({self.type}|{res}|{self.fullpage})\n```{self.link}```"
+    def _get_logstr(self, _id: int, name: str) -> str:
+        res = "{width}x{height}".format_map(self.resolution)
+        return (
+            f"|- [{name}](tg://user?id={_id})\n|- Resolution - > `{res}`\n"
+            f"|- Page - > `{self.fullpage}`\n|- LoadControl - > `{self.render_control}`\n"
+            f"|- Split - > `{self.split}`\n|- `{self.link}`"
+        )
 
     @property
     def arguments_to_print(self) -> dict:
@@ -40,7 +44,7 @@ class Printer(object):
                 arguments_for_pdf["pageRanges"] = "1-2"
             return arguments_for_pdf
         elif self.type == "png" or self.type == "jpeg":
-            arguments_for_image = {"type": self.type, "omitBackground": True}
+            arguments_for_image = {"type": self.type, "omitBackground": False}
             if self.fullpage:
                 arguments_for_image["fullPage"] = True
             return arguments_for_image

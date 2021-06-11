@@ -11,20 +11,16 @@
     ],
     "env": {
         "BOT_TOKEN": {
-            "description": "Your Bot token from @Botfather",
-            "value": ""
+            "description": "Your Bot token from @Botfather"
         },
         "API_ID": {
-            "description": "Your API_ID from https://my.telegram.org/apps ",
-            "value": ""
+            "description": "Your API_ID from https://my.telegram.org/apps"
         },
         "API_HASH": {
-            "description": "Your API_HASH from https://my.telegram.org/apps",
-            "value": ""
+            "description": "Your API_HASH from https://my.telegram.org/apps"
         },
         "LOG_GROUP": {
-            "description": "ID of the logging group (optional)",
-            "value": ""
+            "description": "ID of the logging group (optional)"
         }
     },
     "buildpacks": [

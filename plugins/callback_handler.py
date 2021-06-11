@@ -3,12 +3,13 @@
 
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from helper import mediagroup_gen, settings_parser, split_image
-from plugins.command_handler import (  # pylint:disable=import-error
+from plugins.command_handler import (
     feedback,
 )
 from helper.printer import Printer
 from webshotbot import WebshotBot
 from pyrogram import filters
+from random import choice
 from config import Config
 import asyncio
 
@@ -26,7 +27,8 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
     )
     await message.edit("**please wait you are in a queue...**")
     try:
-        future = client.new_request(printer, callback_query.message.chat.id)
+        future, wait_event = client.new_request(printer, callback_query.message.chat.id)
+        await wait_event.wait()
         await message.edit(
             "**rendering the website...**",
             reply_markup=InlineKeyboardMarkup(
@@ -75,26 +77,31 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
             else InlineKeyboardButton("❌", f"rate-{log_id}-no")
             for x in range(4, 7)
         ]
-        rate_message = await message.reply_text(
+        await message.reply_text(
             "please rate the render result",
             reply_markup=InlineKeyboardMarkup([first_row, second_row]),
         )
-        await asyncio.sleep(8)
-        await rate_message.delete()
 
 
 @WebshotBot.on_callback_query(filters.create(lambda _, __, c: "rate" in c.data))
 async def rate_cb(client: WebshotBot, callback_query: CallbackQuery):
-    await callback_query.answer("Thanks for the feedback")
     _, message_id, text = callback_query.data.split("-")
+    if text == "1" or text == "2":
+        literals = (
+            "Try changing `Load Control` settings to get better result.",
+            "Facing issues?\nJoin the support group mentioned in /support command.",
+        )
+        await callback_query.answer(choice(literals), show_alert=True)
+    else:
+        await callback_query.answer("Thanks for the feedback")
     current_text = (
         await client.get_messages(Config.LOG_GROUP, int(message_id), replies=0)
     ).text.markdown
     current_text += f"\n|- Rating - > `{text}`"
-    await asyncio.gather(
-        client.edit_message_text(Config.LOG_GROUP, int(message_id), current_text),
-        callback_query.message.delete(),
-    )
+    try:
+        await client.edit_message_text(Config.LOG_GROUP, int(message_id), current_text)
+    finally:
+        await callback_query.message.delete()
 
 
 @WebshotBot.on_callback_query(filters.create(lambda _, __, c: c.data == "release"))
@@ -112,13 +119,15 @@ async def release_cb(client: WebshotBot, callback_query: CallbackQuery):
 async def statics_cb(client: WebshotBot, callback_query: CallbackQuery):
     await callback_query.answer("processing")
     printer = Printer("statics", callback_query.message.reply_to_message.text)
-    await callback_query.message.edit("**rendering the statics...**")
-    await client.new_request(printer)
+    message = await callback_query.message.edit("**please wait you are in a queue...**")
+    future, wait_event = client.new_request(printer)
+    await wait_event.wait()
+    await asyncio.gather(message.edit("**rendering the statics...**"), future)
     await client.send_document(
         callback_query.message.chat.id,
         printer.file,
     )
-    await callback_query.message.delete()
+    await message.delete()
     printer.file.close()  # type: ignore
 
 

@@ -1,6 +1,7 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
+from config import Config
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from webshotbot import WebshotBot
 from pyrogram import filters
@@ -76,6 +77,25 @@ async def feedback(_, message: Message) -> None:
             ]
         ),
     )
+
+
+@WebshotBot.on_message(
+    filters.command(["support", "feedback", "help"]) & filters.private
+)
+async def help_handler(_, message: Message) -> None:
+    if Config.SUPPORT_GROUP_LINK is not None:
+        await message.reply(
+            "Join the support group",
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [
+                        InlineKeyboardButton(
+                            text="Group URL", url=Config.SUPPORT_GROUP_LINK
+                        )
+                    ]
+                ]
+            ),
+        )
 
 
 @WebshotBot.on_message(filters.command(["debug", "log"]) & filters.private)

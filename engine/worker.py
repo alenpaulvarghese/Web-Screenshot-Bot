@@ -32,6 +32,7 @@ class Worker(object):
                 if isinstance(task, StopCode):
                     _LOG.info("Worker shutting down")
                     break
+                task.waiting_event.set()
                 if _browser is None:
                     _browser = await launch_browser()
                 await screenshot_engine(_browser, task.printer, task.user_lock)  # type: ignore

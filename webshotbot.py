@@ -1,8 +1,11 @@
+# (c) AlenPaulVarghese
+# -*- coding: utf-8 -*-
+
 from engine import Worker, Request, StopCode
+from typing import Dict, Optional, Tuple
 from pyrogram import Client
 from logger import logging
 from helper import Printer
-from typing import Dict, Optional
 from config import Config
 import asyncio
 import signal
@@ -39,17 +42,18 @@ class WebshotBot(Client):
 
     def new_request(
         self, printer: Printer, _id: Optional[int] = None
-    ) -> asyncio.Future:
+    ) -> Tuple[asyncio.Future, asyncio.Event]:
         future = asyncio.get_event_loop().create_future()
         user_lock = asyncio.Event()
+        waiting_event = asyncio.Event()
         asyncio.create_task(
             self.release_user_lock(user_lock, 60 if printer.render_control else 2)
         )
         if _id is not None:
             self.request_cache[_id] = user_lock
-        request = Request(printer, future, user_lock)
+        request = Request(printer, future, user_lock, waiting_event)
         self.worker.new_task(request)
-        return future
+        return future, waiting_event
 
     @staticmethod
     async def release_user_lock(event: asyncio.Event, _time: float):

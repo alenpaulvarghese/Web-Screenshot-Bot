@@ -49,7 +49,7 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
             ).message_id
         await future
     except Exception as e:
-        await message.edit(e)
+        await message.edit(f"`{e}`")
         return
     await message.edit("**uploading...**")
     if printer.split and printer.fullpage:

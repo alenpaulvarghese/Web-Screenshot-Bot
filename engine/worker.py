@@ -34,8 +34,10 @@ class Worker(object):
                     break
                 task.waiting_event.set()
                 if _browser is None:
-                    _browser = await launch_browser()
-                await screenshot_engine(_browser, task.printer, task.user_lock)  # type: ignore
+                    _browser = await asyncio.wait_for(launch_browser(), 20)
+                await asyncio.wait_for(
+                    screenshot_engine(_browser, task.printer, task.user_lock), 60
+                )
                 task.future_data.set_result(0)
                 _LOG.info(
                     "Took {:.2f} to statisfy the request".format(

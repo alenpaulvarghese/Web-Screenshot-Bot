@@ -95,7 +95,7 @@ async def rate_cb(client: WebshotBot, callback_query: CallbackQuery):
     if text == "1" or text == "2":
         literals = (
             "Try changing `Load Control` settings to get better result.",
-            "Facing issues?\nJoin the support group mentioned in /support command.",
+            "Facing issues?\njoin the support group mentioned in /support command.",
         )
         await callback_query.answer(choice(literals), show_alert=True)
     else:

@@ -84,17 +84,27 @@ async def feedback(_, message: Message) -> None:
 )
 async def help_handler(_, message: Message) -> None:
     if Config.SUPPORT_GROUP_LINK is not None:
-        await message.reply(
-            "Join the support group",
+        await message.reply_text(
+            "__Frequently Asked Questions__** : -\n\n"
+            "A. How to use the bot to render a website?\n\n"
+            "Ans:** Send the link of the website you want to render, "
+            "choose the desired setting, and click `start render`.\n\n"
+            "**B. How does this bot work?\n\n Ans:** This bot uses"
+            " an actual browser under the hood to render websites.\n\n"
+            "**C. How to report a bug or request a new feature?\n\n"
+            "Ans:** For feature requests or bug reports, you can open an "
+            "[issue](https://github.com/alenpaul2001/Web-Screenshot-Bot) in Github"
+            " or send the inquiry message in the support group mentioned below.",
             reply_markup=InlineKeyboardMarkup(
                 [
                     [
                         InlineKeyboardButton(
-                            text="Group URL", url=Config.SUPPORT_GROUP_LINK
+                            text="Support group", url=Config.SUPPORT_GROUP_LINK
                         )
                     ]
                 ]
             ),
+            disable_web_page_preview=True,
         )
 
 

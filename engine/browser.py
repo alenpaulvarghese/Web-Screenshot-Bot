@@ -6,12 +6,11 @@ from helper.images import draw_statics
 from pyppeteer.browser import Browser
 from pyppeteer import launch, errors
 from helper import Printer
+from config import Config
 import logging
 import asyncio
-import os
 
 _LOG = logging.getLogger(__name__)
-_EXEC_PATH = os.environ.get("GOOGLE_CHROME_SHIM", None)
 
 
 async def launch_browser(retry=False) -> Browser:
@@ -20,7 +19,7 @@ async def launch_browser(retry=False) -> Browser:
         browser = await launch(
             headless=True,
             logLevel=50,
-            executablePath=_EXEC_PATH,
+            executablePath=Config.EXEC_PATH,
             handleSIGINT=False,
             args=[
                 "--no-sandbox",

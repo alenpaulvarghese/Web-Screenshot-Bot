@@ -57,16 +57,21 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
             None, split_image, printer.location, printer.file, printer.type
         )
         for media_group in mediagroup_gen(loc_of_images):
-            await callback_query.message.reply_media_group(
-                media_group, disable_notification=True
+            await asyncio.gather(
+                callback_query.message.reply_chat_action("upload_photo"),
+                callback_query.message.reply_media_group(
+                    media_group, disable_notification=True
+                ),
             )
     elif printer.type == "pdf" or printer.fullpage:
-        await callback_query.message.reply_document(
-            printer.file,
+        await asyncio.gather(
+            callback_query.message.reply_chat_action("upload_document"),
+            callback_query.message.reply_document(printer.file),
         )
     elif not printer.fullpage:
-        await callback_query.message.reply_photo(
-            printer.file,
+        await asyncio.gather(
+            callback_query.message.reply_chat_action("upload_photo"),
+            callback_query.message.reply_photo(printer.file),
         )
     await message.delete()
     if Config.LOG_GROUP is not None:
@@ -94,11 +99,11 @@ async def rate_cb(client: WebshotBot, callback_query: CallbackQuery):
         await callback_query.answer(choice(literals), show_alert=True)
     else:
         await callback_query.answer("Thanks for the feedback")
-    current_text = (
-        await client.get_messages(Config.LOG_GROUP, int(message_id), replies=0)
-    ).text.markdown
-    current_text += f"\n|- Rating - > `{text}`"
     try:
+        current_text = (
+            await client.get_messages(Config.LOG_GROUP, int(message_id), replies=0)
+        ).text.markdown
+        current_text += f"\n|- Rating - > `{text}`"
         await client.edit_message_text(Config.LOG_GROUP, int(message_id), current_text)
     finally:
         await callback_query.message.delete()
@@ -123,9 +128,9 @@ async def statics_cb(client: WebshotBot, callback_query: CallbackQuery):
     future, wait_event = client.new_request(printer)
     await wait_event.wait()
     await asyncio.gather(message.edit("**rendering the statics...**"), future)
-    await client.send_document(
-        callback_query.message.chat.id,
-        printer.file,
+    await asyncio.gather(
+        callback_query.message.reply_chat_action("upload_document"),
+        callback_query.message.reply_document(printer.file),
     )
     await message.delete()
     printer.file.close()  # type: ignore

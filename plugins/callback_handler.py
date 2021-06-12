@@ -74,6 +74,7 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
             callback_query.message.reply_photo(printer.file),
         )
     await message.delete()
+    printer.cleanup()
     if Config.LOG_GROUP is not None:
         first_row = [InlineKeyboardButton(x, f"rate-{log_id}-{x}") for x in range(1, 4)]
         second_row = [
@@ -133,7 +134,7 @@ async def statics_cb(client: WebshotBot, callback_query: CallbackQuery):
         callback_query.message.reply_document(printer.file),
     )
     await message.delete()
-    printer.file.close()  # type: ignore
+    printer.cleanup()  # type: ignore
 
 
 @WebshotBot.on_callback_query()

@@ -3,6 +3,7 @@
 
 from typing import Optional, Union
 from re import sub
+import shutil
 import io
 import os
 
@@ -56,6 +57,16 @@ class Printer(object):
             return self.location + self.name + "." + self.type
         else:
             return self.location
+
+    def cleanup(self) -> None:
+        """Cleanup rendered files."""
+        if isinstance(self.location, str):
+            try:
+                shutil.rmtree(self.location)
+            except FileNotFoundError:
+                pass
+        elif isinstance(self.location, io.BytesIO):
+            self.location.close()
 
     def slugify(self, text: str):
         """Function to convert string to a valid file-name."""

@@ -62,5 +62,5 @@ class Config:
 ### Made with ❤️️ in Kerala
 ### Copyright & License 
 
-* Copyright (C) 2020 by [AlenPaulVarghese](https://github.com/alenpaul2001)
-* Licensed under the terms of the [GNU GPL Version 3](https://github.com/alenpaul2001/Web-Screenshot-Bot/blob/master/LICENSE)
+* Copyright (C) 2021 by [AlenPaulVarghese](https://github.com/alenpaul2001)
+* Licensed under the terms of the [GNU AGPL Version 3.0](https://github.com/alenpaul2001/Web-Screenshot-Bot/blob/master/LICENSE)

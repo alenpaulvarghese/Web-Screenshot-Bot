@@ -32,7 +32,7 @@ pip3 install -r requirements.txt
 # <Create config.py appropriately>
 python3 __main__.py
 ```
-#### an example creds.py 👇
+#### an example config.py 👇
 ```py
 class Config:
     BOT_TOKEN = "12345:49dc3eeb1aehda3cI2TesHNHc"

@@ -6,7 +6,7 @@
 A Telegram _Web-Screenshot_ Bot Based on Pyrogram
 # Introduction
 
-Telegram Bot that creates screenshot _[PNG/JPEG]_ or PDF of a given link. Can be matched with various other settings like resolution, partial or full-page rendering and background rendering. The bot can be currently found in @BetterWebShotBot.
+Telegram Bot that creates screenshot _[PNG/JPEG]_ or PDF of a given link. Can be matched with various other settings like resolution, partial or full-page rendering. The bot can currently be found in @BetterWebShotBot.
 
 ### Available Resolutions are :
 
@@ -15,10 +15,11 @@ Telegram Bot that creates screenshot _[PNG/JPEG]_ or PDF of a given link. Can be
 3. 1280x720
 4. 2560x1440
 
-Splitting of long pages is available for png and jpeg, up to 10 images are sent as media group images above the count of 10 are zipped and send as a document.
+Splitting of long pages are available for png and jpeg.
 
 # Installing 
 
+> Note: the bot requires chromium/chrome binary to render websites.
 ### <b>The Legacy Way</b>
 Simply clone the repository and run the main file:
 
@@ -28,17 +29,20 @@ cd Web-Screenshot-Bot
 virtualenv -p /usr/bin/python3 venv
 . ./venv/bin/activate
 pip3 install -r requirements.txt
-# <Create creds.py appropriately>
-python3 main.py
+# <Create config.py appropriately>
+python3 __main__.py
 ```
-#### an example creds.py 👇
+#### an example config.py 👇
 ```py
-import os
-
-class my():
+class Config:
     BOT_TOKEN = "12345:49dc3eeb1aehda3cI2TesHNHc"
     API_ID = 256123
     API_HASH = "eb06d4abfb49dc3eeb1aeb98ae0f581e"
+    # Leave this None to automatically download chrome binary
+    EXEC_PATH = None
+    # Optional Fields
+    LOG_GROUP = -123990002
+    SUPPORT_GROUP_LINK = "https://t.me/bytessupport"
 ```
 
 
@@ -58,5 +62,5 @@ class my():
 ### Made with ❤️️ in Kerala
 ### Copyright & License 
 
-* Copyright (C) 2020 by [AlenPaulVarghese](https://github.com/alenpaul2001)
-* Licensed under the terms of the [GNU GPL Version 3](https://github.com/alenpaul2001/Web-Screenshot-Bot/blob/master/LICENSE)
+* Copyright (C) 2021 by [AlenPaulVarghese](https://github.com/alenpaul2001)
+* Licensed under the terms of the [GNU AGPL Version 3.0](https://github.com/alenpaul2001/Web-Screenshot-Bot/blob/master/LICENSE)

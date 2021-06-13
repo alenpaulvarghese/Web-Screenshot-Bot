@@ -1,5 +1,4 @@
-pyrogram
 Pillow
-wheel
+pyrogram
 tgcrypto
 pyppeteer

@@ -99,5 +99,7 @@ async def screenshot_engine(
             await page.screenshot(printer.arguments_to_print, path=printer.file)
     except errors.PageError:
         raise ResponseNotReady("This is not a valid link 🤔")
+    except asyncio.CancelledError:
+        raise ResponseNotReady("server got interuppted, please try again later")
     finally:
         await page.close()

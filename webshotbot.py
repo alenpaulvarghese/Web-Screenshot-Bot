@@ -1,8 +1,8 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
-from engine import Worker, Request, StopCode
 from typing import Dict, Optional, Tuple
+from engine import Worker, Request
 from pyrogram import Client
 from logger import logging
 from helper import Printer
@@ -29,13 +29,21 @@ class WebshotBot(Client):
     def start(self):
         loop = asyncio.get_event_loop()
         for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(sig, lambda: self.stop())
+            loop.add_signal_handler(sig, lambda: asyncio.create_task(self.stop()))
         super().start()
         self.worker.start(loop)
         _LOG.info("Client started")
+        loop.run_forever()
 
-    def stop(self):
-        self.worker.new_task(StopCode())
+    async def stop(self):
+        await self.worker.close()
+        await super().stop()
+        _LOG.info("Client Disconnected")
+        for task in asyncio.all_tasks():
+            if task is not asyncio.current_task():
+                task.cancel()
+        _LOG.info("Closing Event Loop")
+        asyncio.get_running_loop().stop()
 
     def get_request(self, _id: int) -> Optional[asyncio.Event]:
         return self.request_cache.get(_id)
@@ -47,7 +55,7 @@ class WebshotBot(Client):
         user_lock = asyncio.Event()
         waiting_event = asyncio.Event()
         asyncio.create_task(
-            self.release_user_lock(user_lock, 60 if printer.render_control else 2)
+            self.release_user_lock(user_lock, 30 if printer.render_control else 2)
         )
         if _id is not None:
             self.request_cache[_id] = user_lock

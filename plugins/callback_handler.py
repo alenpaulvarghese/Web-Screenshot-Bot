@@ -34,7 +34,7 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
             reply_markup=InlineKeyboardMarkup(
                 [[InlineKeyboardButton("render now", "release")]]
             )
-            if printer.render_control
+            if printer.scroll_control
             else None,
         )
         if Config.LOG_GROUP is not None:
@@ -163,15 +163,15 @@ async def keyboards_cb(_, callback_query: CallbackQuery):
             text="Choose the prefered settings", reply_markup=msg.reply_markup
         )
 
-    elif cb_data == "load":
+    elif cb_data == "scroll":
         current_load = msg.reply_markup.inline_keyboard[2][0]
-        if "None" in current_load.text:
+        if "No" in current_load.text:
             text = "Auto"
         elif "Auto" in current_load.text:
             text = "Manual"
         elif "Manual" in current_load.text:
-            text = "None"
-        msg.reply_markup.inline_keyboard[2][0].text = f"Load Control - {text}"
+            text = "No"
+        msg.reply_markup.inline_keyboard[2][0].text = f"Scroll Site - {text}"
         await msg.edit(
             text="Choose the prefered settings", reply_markup=msg.reply_markup
         )

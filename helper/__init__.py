@@ -20,20 +20,20 @@ async def settings_parser(link: str, inline_keyboard: list) -> Printer:
                 _format = "png" if "PNG" in text else "jpeg"
         if "Page" in text:
             page_value = True if "Full" in text else False
-        if "Load" in text:
-            if "None" in text:
-                render_control = None
+        if "Scroll" in text:
+            if "No" in text:
+                scroll_control = None
             elif "Auto" in text:
-                render_control = False
+                scroll_control = False
             elif "Manual" in text:
-                render_control = True
+                scroll_control = True
         if "Split" in text:
             split = True if "Yes" in text else False
         if "resolution" in text:
             resolution = text
         await asyncio.sleep(0.00001)
-    printer = Printer(_format, link)
-    printer.render_control = render_control
+    printer = Printer(_format, link)  # type: ignore
+    printer.scroll_control = scroll_control
     printer.fullpage = page_value
     printer.split = split
     if resolution:

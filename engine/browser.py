@@ -46,47 +46,13 @@ async def screenshot_engine(
     await page.setViewport(printer.resolution)
     try:
         await page.goto(printer.link, dict(timeout=60000))
-        title = await page.title()
+        title, _ = await asyncio.gather(
+            page.title(), page.addScriptTag(dict(path="assets/inject.js"))
+        )
         printer.slugify(title[:14])
-        if printer.render_control is not None:
-            control = asyncio.create_task(
-                page.evaluate(
-                    """
-                    async function scroll(){
-                        let height = Math.max(
-                            document.body.scrollHeight,
-                            document.body.offsetHeight,
-                            document.documentElement.clientHeight,
-                            document.documentElement.scrollHeight,
-                            document.documentElement.offsetHeight);
-                        for (let i=0; i <= height; i += 10) {
-                            window.scrollTo(0, i);
-                            await new Promise(r => setTimeout(r, 1));
-                            }
-                    };
-                    scroll();
-                    """,
-                    force_expr=True,
-                )
-            )
-            if printer.render_control is False:
-                await control
-            await user_lock.wait()
-            control.cancel()
-        if printer.type == "pdf":
-            await page.pdf(printer.arguments_to_print, path=printer.file)
-        elif printer.type == "statics":
-            height, width, metrics = await asyncio.gather(
-                page.evaluate(
-                    "Math.max(document.body.scrollHeight, document.body.offsetHeight, "
-                    "document.documentElement.clientHeight, document.documentElement.scrollHeight, "
-                    "document.documentElement.offsetHeight);"
-                ),
-                page.evaluate(
-                    "Math.max(document.body.scrollWidth, document.body.offsetWidth, "
-                    "document.documentElement.clientWidth, document.documentElement.scrollWidth, "
-                    "document.documentElement.offsetWidth);"
-                ),
+        if printer.type == "statics":
+            (height, width), metrics = await asyncio.gather(
+                page.evaluate("[get_height(), get_width()]"),
                 page.metrics(),
             )
             page_data = dict(Height=height, Width=width)
@@ -96,7 +62,22 @@ async def screenshot_engine(
             )
             printer.set_location(byteio_file)
         else:
-            await page.screenshot(printer.arguments_to_print, path=printer.file)
+            if printer.scroll_control is not None and printer.fullpage is True:
+                if printer.scroll_control is False:
+                    await page.evaluate("scroll(get_height());")
+                elif printer.scroll_control is True:
+                    scroll_task = asyncio.create_task(
+                        page.evaluate("progressive_scroll();")
+                    )
+                    await asyncio.wait(
+                        {scroll_task, user_lock.wait()},
+                        return_when=asyncio.tasks.FIRST_COMPLETED,
+                    )
+                    await page.evaluate("cancel_scroll()")
+            if printer.type == "pdf":
+                await page.pdf(printer.arguments_to_print, path=printer.file)
+            else:
+                await page.screenshot(printer.arguments_to_print, path=printer.file)
     except errors.PageError:
         raise ResponseNotReady("This is not a valid link 🤔")
     except asyncio.CancelledError:

@@ -19,11 +19,7 @@ async def checker(_, message: Message):
             [
                 [InlineKeyboardButton(text="Format - PDF", callback_data="format")],
                 [InlineKeyboardButton(text="Page - Full", callback_data="page")],
-                [
-                    InlineKeyboardButton(
-                        text="Load Control - None", callback_data="load"
-                    )
-                ],
+                [InlineKeyboardButton(text="Scroll Site - No", callback_data="scroll")],
                 [
                     InlineKeyboardButton(
                         text="show additional options ˅", callback_data="options"

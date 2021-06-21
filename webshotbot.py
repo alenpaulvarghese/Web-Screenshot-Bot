@@ -9,6 +9,8 @@ from helper import Printer
 from config import Config
 import asyncio
 import signal
+import shutil
+import os
 
 
 _LOG = logging.getLogger(__name__)
@@ -36,7 +38,7 @@ class WebshotBot(Client):
         loop.run_forever()
 
     async def stop(self):
-        await self.worker.close()
+        await asyncio.gather(self.worker.close(), self.shutdown_cleanup())
         await super().stop()
         _LOG.info("Client Disconnected")
         for task in asyncio.all_tasks():
@@ -55,13 +57,22 @@ class WebshotBot(Client):
         user_lock = asyncio.Event()
         waiting_event = asyncio.Event()
         asyncio.create_task(
-            self.release_user_lock(user_lock, 30 if printer.render_control else 2)
+            self.release_user_lock(user_lock, 30 if printer.scroll_control else 2)
         )
         if _id is not None:
             self.request_cache[_id] = user_lock
         request = Request(printer, future, user_lock, waiting_event)
         self.worker.new_task(request)
         return future, waiting_event
+
+    async def shutdown_cleanup(self):
+        if Config.LOG_GROUP is not None and os.path.isfile("debug.log"):
+            await self.send_document(
+                Config.LOG_GROUP, "debug.log", caption="cycling log"
+            )
+            os.remove("debug.log")
+        if os.path.isdir("./FILES"):
+            shutil.rmtree("./FILES")
 
     @staticmethod
     async def release_user_lock(event: asyncio.Event, _time: float):

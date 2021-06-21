@@ -53,16 +53,21 @@ class Worker(object):
                 self.current_task = asyncio.create_task(
                     screenshot_engine(_browser, task.printer, task.user_lock)
                 )
-                await self.current_task
+                await asyncio.wait_for(self.current_task, 50)
                 task.future_data.set_result(0)
                 _LOG.info(
                     "Took {:.2f} to statisfy the request".format(
                         time.perf_counter() - start
                     )
                 )
+            except asyncio.TimeoutError:
+                _LOG.error("Excepted Timeout Error")
+                task.future_data.set_exception(Exception("request timeout"))
             except Exception as e:
                 _LOG.error("Excepted %s", e)
-                task.future_data.set_exception(e)
+                task.future_data.set_exception(
+                    e if str(e) != "" else Exception("something went wrong")
+                )
                 if _browser is not None:
                     _LOG.info("Closing browser object")
                     await _browser.close()

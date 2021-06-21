@@ -1,7 +1,7 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
-from typing import Optional, Union
+from typing import Optional, Union, Literal
 from re import sub
 import shutil
 import io
@@ -11,13 +11,13 @@ _LOC = Union[str, io.BytesIO]
 
 
 class Printer(object):
-    def __init__(self, _type: str, _link: str):
+    def __init__(self, _type: Literal["pdf", "png", "jpeg", "statics"], _link: str):
         self.resolution = {"width": 800, "height": 600}
         self.type = _type
         self.link = _link
         self.split = False
         self.fullpage = True
-        self.render_control: Optional[bool] = False
+        self.scroll_control: Optional[bool] = False
         self.location: _LOC = "./FILES"
         self.name = "@Webs-Screenshot"
 
@@ -25,7 +25,7 @@ class Printer(object):
         res = "{width}x{height}".format_map(self.resolution)
         return (
             f"|- [{name}](tg://user?id={_id})\n|- Resolution - > `{res}`\n"
-            f"|- Page - > `{self.fullpage}`\n|- LoadControl - > `{self.render_control}`\n"
+            f"|- Page - > `{self.fullpage}`\n|- ScrollControl - > `{self.scroll_control}`\n"
             f"|- Split - > `{self.split}`\n|- `{self.link}`"
         )
 

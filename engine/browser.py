@@ -5,6 +5,7 @@ from http.client import BadStatusLine, ResponseNotReady
 from helper.images import draw_statics
 from pyppeteer.browser import Browser
 from pyppeteer import launch, errors
+from helper import inject_reader
 from helper import Printer
 from config import Config
 import logging
@@ -46,13 +47,14 @@ async def screenshot_engine(
     await page.setViewport(printer.resolution)
     try:
         await page.goto(printer.link, dict(timeout=60000))
+        inject_str = await asyncio.get_event_loop().run_in_executor(None, inject_reader)
         title, _ = await asyncio.gather(
-            page.title(), page.addScriptTag(dict(path="assets/inject.js"))
+            page.title(), page.evaluate(inject_str, force_expr=True)
         )
         printer.slugify(title[:14])
         if printer.type == "statics":
             (height, width), metrics = await asyncio.gather(
-                page.evaluate("[get_height(), get_width()]"),
+                page.evaluate("[getHeight(), getWidth()]"),
                 page.metrics(),
             )
             page_data = dict(Height=height, Width=width)
@@ -64,16 +66,16 @@ async def screenshot_engine(
         else:
             if printer.scroll_control is not None and printer.fullpage is True:
                 if printer.scroll_control is False:
-                    await page.evaluate("scroll(get_height());")
+                    await page.evaluate("scroll(getHeight());")
                 elif printer.scroll_control is True:
                     scroll_task = asyncio.create_task(
-                        page.evaluate("progressive_scroll();")
+                        page.evaluate("progressiveScroll();")
                     )
                     await asyncio.wait(
                         {scroll_task, user_lock.wait()},
                         return_when=asyncio.tasks.FIRST_COMPLETED,
                     )
-                    await page.evaluate("cancel_scroll()")
+                    await page.evaluate("cancelScroll()")
             if printer.type == "pdf":
                 await page.pdf(printer.arguments_to_print, path=printer.file)
             else:

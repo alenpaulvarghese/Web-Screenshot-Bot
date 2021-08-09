@@ -52,3 +52,10 @@ def mediagroup_gen(loc: List[str]) -> Iterator[List[InputMediaPhoto]]:
     ]
     for i in range(0, len(media_group), 10):
         yield media_group[i : i + 10]  # noqa: E203
+
+
+def inject_reader() -> str:
+    r_string = ""
+    with open("assets/inject.js") as f:
+        r_string = f.read()
+    return r_string

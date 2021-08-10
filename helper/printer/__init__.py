@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 from typing import Optional, Union, Literal
+from pathlib import Path
 from re import sub
 import shutil
 import io
-import os
 
-_LOC = Union[str, io.BytesIO]
+_LOC = Union[Path, io.BytesIO]
 
 
 class Printer(object):
@@ -18,13 +18,14 @@ class Printer(object):
         self.split = False
         self.fullpage = True
         self.scroll_control: Optional[bool] = False
-        self.location: _LOC = "./FILES"
+        self.location: _LOC = Path("./FILES")
         self.name = "@Webs-Screenshot"
 
     def _get_logstr(self, _id: int, name: str) -> str:
         res = "{width}x{height}".format_map(self.resolution)
         return (
-            f"|- [{name}](tg://user?id={_id})\n|- Resolution - > `{res}`\n"
+            f"|- [{name}](tg://user?id={_id})\n"
+            f"|- Format - > `{self.type}`\n|- Resolution - > `{res}`\n"
             f"|- Page - > `{self.fullpage}`\n|- ScrollControl - > `{self.scroll_control}`\n"
             f"|- Split - > `{self.split}`\n|- `{self.link}`"
         )
@@ -53,14 +54,14 @@ class Printer(object):
 
     @property
     def file(self) -> _LOC:
-        if isinstance(self.location, str):
-            return self.location + self.name + "." + self.type
+        if isinstance(self.location, Path):
+            return self.location / f"{self.name}.{self.type}"
         else:
             return self.location
 
     def cleanup(self) -> None:
         """Cleanup rendered files."""
-        if isinstance(self.location, str):
+        if isinstance(self.location, Path):
             try:
                 shutil.rmtree(self.location)
             except FileNotFoundError:
@@ -76,11 +77,9 @@ class Printer(object):
 
     def allocate_folder(self, chat_id: int, message_id: int):
         """Allocate folder based on chat_id and message_id."""
-        if not os.path.isdir("./FILES"):
-            os.mkdir("./FILES")
-        location = f"./FILES/{str(chat_id)}/{str(message_id)}/"
-        if not os.path.isdir(location):
-            os.makedirs(location)
+        location = self.location / str(chat_id) / str(message_id)  # type: ignore
+        if not (location.exists() and location.is_dir()):
+            location.mkdir(parents=True)
         self.set_location(location)
 
     def set_location(self, loc: _LOC) -> None:

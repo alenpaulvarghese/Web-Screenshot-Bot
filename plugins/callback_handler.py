@@ -55,7 +55,7 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
     await message.edit("**uploading...**")
     if printer.split and printer.fullpage:
         loc_of_images = await asyncio.get_event_loop().run_in_executor(
-            None, split_image, printer.location, printer.file, printer.type
+            None, split_image, printer.file
         )
         for media_group in mediagroup_gen(loc_of_images):
             await asyncio.gather(
@@ -77,23 +77,24 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
     await message.delete()
     printer.cleanup()
     if Config.LOG_GROUP is not None:
-        first_row = [InlineKeyboardButton(x, f"rate-{log_id}-{x}") for x in range(1, 4)]
-        second_row = [
-            InlineKeyboardButton(x, f"rate-{log_id}-{x}")
-            if x != 6
-            else InlineKeyboardButton("❌", f"rate-{log_id}-no")
-            for x in range(4, 7)
-        ]
         await message.reply_text(
-            "please rate the render result",
-            reply_markup=InlineKeyboardMarkup([first_row, second_row]),
+            "Satisfied with the render result?",
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [
+                        InlineKeyboardButton("yes", f"rate-{log_id}-yes"),
+                        InlineKeyboardButton("no", f"rate-{log_id}-no"),
+                    ],
+                    [InlineKeyboardButton("❌", f"rate-{log_id}-cant")],
+                ]
+            ),
         )
 
 
 @WebshotBot.on_callback_query(filters.create(lambda _, __, c: "rate" in c.data))
 async def rate_cb(client: WebshotBot, callback_query: CallbackQuery):
     _, message_id, text = callback_query.data.split("-")
-    if text == "1" or text == "2":
+    if text == "no":
         literals = (
             "Try changing `Load Control` settings to get better result.",
             "Facing issues?\njoin the support group mentioned in /support command.",
@@ -127,15 +128,19 @@ async def statics_cb(client: WebshotBot, callback_query: CallbackQuery):
     await callback_query.answer("processing")
     printer = Printer("statics", callback_query.message.reply_to_message.text)
     message = await callback_query.message.edit("**please wait you are in a queue...**")
-    future, wait_event = client.new_request(printer)
-    await wait_event.wait()
-    await asyncio.gather(message.edit("**rendering the statics...**"), future)
-    await asyncio.gather(
-        callback_query.message.reply_chat_action("upload_document"),
-        callback_query.message.reply_document(printer.file),
-    )
-    await message.delete()
-    printer.cleanup()  # type: ignore
+    try:
+        future, wait_event = client.new_request(printer)
+        await wait_event.wait()
+        await asyncio.gather(message.edit("**rendering the statics...**"), future)
+        await asyncio.gather(
+            callback_query.message.reply_chat_action("upload_document"),
+            callback_query.message.reply_document(printer.file),
+        )
+        await message.delete()
+    except Exception as e:
+        await message.edit(f"`{e}`")
+    finally:
+        printer.cleanup()  # type: ignore
 
 
 @WebshotBot.on_callback_query()

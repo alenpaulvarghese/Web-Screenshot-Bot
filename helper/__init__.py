@@ -1,10 +1,11 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
-from pyrogram.types import InputMediaPhoto
 from .images import split_image, draw_statics  # noqa
-from .printer import Printer  # noqa
+from pyrogram.types import InputMediaPhoto
 from typing import Iterator, List
+from .printer import Printer  # noqa
+from pathlib import Path
 import asyncio
 
 
@@ -46,7 +47,7 @@ async def settings_parser(link: str, inline_keyboard: list) -> Printer:
     return printer
 
 
-def mediagroup_gen(loc: List[str]) -> Iterator[List[InputMediaPhoto]]:
+def mediagroup_gen(loc: List[Path]) -> Iterator[List[InputMediaPhoto]]:
     media_group = [
         InputMediaPhoto(image, str(count)) for count, image in enumerate(loc, start=1)
     ]
@@ -56,6 +57,6 @@ def mediagroup_gen(loc: List[str]) -> Iterator[List[InputMediaPhoto]]:
 
 def inject_reader() -> str:
     r_string = ""
-    with open("assets/inject.js") as f:
+    with open(Path("assets", "inject.js")) as f:
         r_string = f.read()
     return r_string

@@ -5,6 +5,7 @@ from engine.browser import launch_browser, screenshot_engine
 from engine.request import Request, StopCode
 from pyppeteer.browser import Browser
 from typing import Optional
+import traceback
 import logging
 import asyncio
 import time
@@ -65,6 +66,7 @@ class Worker(object):
                 task.future_data.set_exception(Exception("request timeout"))
             except Exception as e:
                 _LOG.error("Excepted %s", e)
+                traceback.print_exc()
                 task.future_data.set_exception(
                     e if str(e) != "" else Exception("something went wrong")
                 )

@@ -78,8 +78,7 @@ class Printer(object):
     def allocate_folder(self, chat_id: int, message_id: int):
         """Allocate folder based on chat_id and message_id."""
         location = self.location / str(chat_id) / str(message_id)  # type: ignore
-        if not (location.exists() and location.is_dir()):
-            location.mkdir(parents=True)
+        location.mkdir(parents=True, exist_ok=True)
         self.set_location(location)
 
     def set_location(self, loc: _LOC) -> None:

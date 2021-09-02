@@ -96,7 +96,7 @@ async def rate_cb(client: WebshotBot, callback_query: CallbackQuery):
     _, message_id, text = callback_query.data.split("-")
     if text == "no":
         literals = (
-            "Try changing `Load Control` settings to get better result.",
+            "Try changing `Scroll Control` setting to get better result.",
             "Facing issues?\njoin the support group mentioned in /support command.",
         )
         await callback_query.answer(choice(literals), show_alert=True)

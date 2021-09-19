@@ -69,13 +69,8 @@ async def screenshot_engine(
                 if printer.scroll_control is False:
                     await page.evaluate("scroll(getHeight());")
                 elif printer.scroll_control is True:
-                    scroll_task = asyncio.create_task(
-                        page.evaluate("progressiveScroll();")
-                    )
-                    await asyncio.wait(
-                        {scroll_task, user_lock.wait()},
-                        return_when=asyncio.tasks.FIRST_COMPLETED,
-                    )
+                    asyncio.create_task(page.evaluate("progressiveScroll();"))
+                    await user_lock.wait()
                     await page.evaluate("cancelScroll()")
             if printer.type == "pdf":
                 await page.pdf(printer.print_arguments, path=printer.file)

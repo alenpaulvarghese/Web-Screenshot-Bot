@@ -9,7 +9,6 @@ from plugins.command_handler import (
 from helper.printer import Printer
 from webshotbot import WebshotBot
 from pyrogram import filters
-from random import choice
 from config import Config
 import asyncio
 
@@ -38,15 +37,13 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
             else None,
         )
         if Config.LOG_GROUP is not None:
-            log_id = (
-                await client.send_message(
-                    Config.LOG_GROUP,
-                    printer._get_logstr(
-                        callback_query.message.reply_to_message.from_user.id,
-                        callback_query.message.reply_to_message.from_user.first_name,
-                    ),
-                )
-            ).message_id
+            await client.send_message(
+                Config.LOG_GROUP,
+                printer._get_logstr(
+                    callback_query.message.reply_to_message.from_user.id,
+                    callback_query.message.reply_to_message.from_user.first_name,
+                ),
+            )
         await future
     except Exception as e:
         await message.edit(f"`{e}`")
@@ -74,42 +71,13 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
             callback_query.message.reply_chat_action("upload_photo"),
             callback_query.message.reply_photo(printer.file),
         )
-    await message.delete()
+    await asyncio.gather(
+        message.delete(),
+        message.reply_text(
+            '__Please toggle "Scroll Site" setting if the output has no content.__'
+        ),
+    )
     printer.cleanup()
-    if Config.LOG_GROUP is not None:
-        await message.reply_text(
-            "Satisfied with the render result?",
-            reply_markup=InlineKeyboardMarkup(
-                [
-                    [
-                        InlineKeyboardButton("yes", f"rate-{log_id}-yes"),
-                        InlineKeyboardButton("no", f"rate-{log_id}-no"),
-                    ],
-                    [InlineKeyboardButton("❌", f"rate-{log_id}-cant")],
-                ]
-            ),
-        )
-
-
-@WebshotBot.on_callback_query(filters.create(lambda _, __, c: "rate" in c.data))
-async def rate_cb(client: WebshotBot, callback_query: CallbackQuery):
-    _, message_id, text = callback_query.data.split("-")
-    if text == "no":
-        literals = (
-            "Try changing `Scroll Control` setting to get better result.",
-            "Facing issues?\njoin the support group mentioned in /support command.",
-        )
-        await callback_query.answer(choice(literals), show_alert=True)
-    else:
-        await callback_query.answer("Thanks for the feedback")
-    try:
-        current_text = (
-            await client.get_messages(Config.LOG_GROUP, int(message_id), replies=0)
-        ).text.markdown
-        current_text += f"\n|- Rating - > `{text}`"
-        await client.edit_message_text(Config.LOG_GROUP, int(message_id), current_text)
-    finally:
-        await callback_query.message.delete()
 
 
 @WebshotBot.on_callback_query(filters.create(lambda _, __, c: c.data == "release"))

@@ -10,7 +10,7 @@ import asyncio
 
 
 async def settings_parser(link: str, inline_keyboard: list) -> Printer:
-    # starting to recognize settings
+    """Function to parse render settings from inline-keyboard."""
     split, resolution = False, ""
     for settings in inline_keyboard:
         text = settings[0].text
@@ -48,6 +48,7 @@ async def settings_parser(link: str, inline_keyboard: list) -> Printer:
 
 
 def mediagroup_gen(loc: List[Path]) -> Iterator[List[InputMediaPhoto]]:
+    """Generator function that yields 10 InputMediaPhoto at a time."""
     media_group = [
         InputMediaPhoto(image, str(count)) for count, image in enumerate(loc, start=1)
     ]
@@ -56,6 +57,7 @@ def mediagroup_gen(loc: List[Path]) -> Iterator[List[InputMediaPhoto]]:
 
 
 def inject_reader() -> str:
+    """Function to read string from file."""
     r_string = ""
     with open(Path("assets", "inject.js")) as f:
         r_string = f.read()

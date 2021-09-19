@@ -22,6 +22,7 @@ class Printer(object):
         self.name = "@Webs-Screenshot"
 
     def _get_logstr(self, _id: int, name: str) -> str:
+        """String containing informations for logging."""
         res = "{width}x{height}".format_map(self.resolution)
         return (
             f"|- [{name}](tg://user?id={_id})\n"
@@ -31,7 +32,8 @@ class Printer(object):
         )
 
     @property
-    def arguments_to_print(self) -> dict:
+    def print_arguments(self) -> dict:
+        """Dict containing arguments used to feed chromium."""
         if self.type == "pdf":
             arguments_for_pdf = {
                 "displayHeaderFooter": True,
@@ -54,6 +56,7 @@ class Printer(object):
 
     @property
     def file(self) -> _LOC:
+        """Contains the path to the file or in-memory object."""
         if isinstance(self.location, Path):
             return self.location / f"{self.name}.{self.type}"
         else:
@@ -77,7 +80,7 @@ class Printer(object):
 
     def allocate_folder(self, chat_id: int, message_id: int):
         """Allocate folder based on chat_id and message_id."""
-        location = self.location / str(chat_id) / str(message_id)  # type: ignore
+        location = Path(self.location, str(chat_id), str(message_id))  # type: ignore
         location.mkdir(parents=True, exist_ok=True)
         self.set_location(location)
 

@@ -15,6 +15,7 @@ _LOG = logging.getLogger(__name__)
 
 
 async def launch_browser(retry=False) -> Browser:
+    """Function used to launch chromium browser."""
     try:
         _LOG.info("Launching browser")
         browser = await launch(
@@ -77,9 +78,9 @@ async def screenshot_engine(
                     )
                     await page.evaluate("cancelScroll()")
             if printer.type == "pdf":
-                await page.pdf(printer.arguments_to_print, path=printer.file)
+                await page.pdf(printer.print_arguments, path=printer.file)
             else:
-                await page.screenshot(printer.arguments_to_print, path=printer.file)
+                await page.screenshot(printer.print_arguments, path=printer.file)
     except errors.PageError:
         raise ResponseNotReady("This is not a valid link 🤔")
     except asyncio.CancelledError:

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from typing import Optional, Union, Literal
+from pyrogram.types import Message
 from pathlib import Path
 from re import sub
 import shutil
@@ -87,3 +88,40 @@ class Printer(object):
     def set_location(self, loc: _LOC) -> None:
         """Set value for location attribute."""
         self.location = loc
+
+    @staticmethod
+    def from_message(message: Message) -> "Printer":
+        """Function that parse render settings from message."""
+        split, resolution = False, ""
+        for settings in message.reply_markup.inline_keyboard:
+            text = settings[0].text
+            if "Format" in text:
+                if "PDF" in text:
+                    _format = "pdf"
+                else:
+                    _format = "png" if "PNG" in text else "jpeg"
+            if "Page" in text:
+                page_value = True if "Full" in text else False
+            if "Scroll" in text:
+                if "No" in text:
+                    scroll_control = None
+                elif "Auto" in text:
+                    scroll_control = False
+                elif "Manual" in text:
+                    scroll_control = True
+            if "Split" in text:
+                split = True if "Yes" in text else False
+            if "resolution" in text:
+                resolution = text
+        printer = Printer(_format, message.reply_to_message.text)  # type: ignore
+        printer.scroll_control = scroll_control
+        printer.fullpage = page_value
+        printer.split = split
+        if resolution:
+            if "1280" in resolution:
+                printer.resolution = {"width": 1280, "height": 720}
+            elif "2560" in resolution:
+                printer.resolution = {"width": 2560, "height": 1440}
+            elif "640" in resolution:
+                printer.resolution = {"width": 640, "height": 480}
+        return printer

@@ -10,7 +10,7 @@ import io
 
 # https://stackoverflow.com/questions/25705773/image-cropping-tool-python
 def split_image(filename: Path) -> List[Path]:
-    """Function used to split image vertically."""
+    """Function to split image vertically."""
     Image.MAX_IMAGE_PIXELS = None
     # https://coderwall.com/p/ovlnwa/use-python-and-pil-to-slice-an-image-vertically
     location_of_image = []
@@ -42,7 +42,7 @@ def split_image(filename: Path) -> List[Path]:
 
 def draw_statics(name: str, metrics: dict) -> io.BytesIO:
     """Function to generate statics image."""
-    font_path = Path("assets", "fonts", "DMSans-Bold.ttf")
+    font_path = Path("assets", "fonts", "DMSans-Bold.ttf").__str__()
     font = ImageFont.truetype(font_path, size=1)
     font_size = 1
     # https://stackoverflow.com/a/4902713/13033981

@@ -1,7 +1,7 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
-from typing import Optional, Union, Literal
+from typing import Dict, Union, Literal, TypedDict
 from pyrogram.types import Message
 from pathlib import Path
 from re import sub
@@ -9,16 +9,18 @@ import shutil
 import io
 
 _LOC = Union[Path, io.BytesIO]
+_RTYPE = Literal["pdf", "png", "jpeg", "statics"]
+_SCROLL = Literal["no", "manual", "auto"]
 
 
 class Printer(object):
-    def __init__(self, _type: Literal["pdf", "png", "jpeg", "statics"], _link: str):
+    def __init__(self, _type: _RTYPE, _link: str):
         self.resolution = {"width": 800, "height": 600}
-        self.type = _type
         self.link = _link
         self.split = False
         self.fullpage = True
-        self.scroll_control: Optional[bool] = False
+        self.type: _RTYPE = _type
+        self.scroll_control: _SCROLL = "no"
         self.location: _LOC = Path("./FILES")
         self.name = "@Webs-Screenshot"
 
@@ -92,7 +94,7 @@ class Printer(object):
     @staticmethod
     def from_message(message: Message) -> "Printer":
         """Function that parse render settings from message."""
-        split, resolution = False, ""
+        split, resolution, scroll_control = False, "", "no"
         for settings in message.reply_markup.inline_keyboard:
             text = settings[0].text
             if "Format" in text:
@@ -103,18 +105,16 @@ class Printer(object):
             if "Page" in text:
                 page_value = True if "Full" in text else False
             if "Scroll" in text:
-                if "No" in text:
-                    scroll_control = None
-                elif "Auto" in text:
-                    scroll_control = False
+                if "Auto" in text:
+                    scroll_control = "auto"
                 elif "Manual" in text:
-                    scroll_control = True
+                    scroll_control = "manual"
             if "Split" in text:
                 split = True if "Yes" in text else False
             if "resolution" in text:
                 resolution = text
         printer = Printer(_format, message.reply_to_message.text)  # type: ignore
-        printer.scroll_control = scroll_control
+        printer.scroll_control = scroll_control  # type: ignore
         printer.fullpage = page_value
         printer.split = split
         if resolution:

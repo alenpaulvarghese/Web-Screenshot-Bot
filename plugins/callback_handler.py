@@ -30,7 +30,7 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
             reply_markup=InlineKeyboardMarkup(
                 [[InlineKeyboardButton("render now", "release")]]
             )
-            if printer.scroll_control
+            if printer.scroll_control == "manual"
             else None,
         )
         if Config.LOG_GROUP is not None:

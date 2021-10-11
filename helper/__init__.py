@@ -4,7 +4,7 @@
 from .images import split_image, draw_statics  # noqa
 from pyrogram.types import InputMediaPhoto
 from typing import Iterator, List
-from .printer import Printer  # noqa
+from .printer import Printer, _CDICT  # noqa
 from pathlib import Path
 
 

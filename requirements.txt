@@ -2,3 +2,4 @@ Pillow
 pyrogram
 tgcrypto
 pyppeteer
+cachetools

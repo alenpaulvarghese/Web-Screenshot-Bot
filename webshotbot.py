@@ -1,11 +1,12 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, MutableMapping
 from engine import Worker, Request
+from helper import Printer, _CDICT
+from cachetools import LRUCache
 from pyrogram import Client
 from logger import logging
-from helper import Printer
 from config import Config
 import asyncio
 import signal
@@ -26,6 +27,7 @@ class WebshotBot(Client):
             plugins=dict(root="plugins"),
         )
         self.request_cache: Dict[int, asyncio.Event] = {}
+        self.settings_cache: MutableMapping[int, _CDICT] = LRUCache(8)
         self.worker = Worker()
 
     def start(self):
@@ -50,6 +52,9 @@ class WebshotBot(Client):
     def get_request(self, _id: int) -> Optional[asyncio.Event]:
         return self.request_cache.get(_id)
 
+    def get_settings_cache(self, _id: int) -> Optional[_CDICT]:
+        return self.settings_cache.get(_id)
+
     def new_request(
         self, printer: Printer, _id: Optional[int] = None
     ) -> Tuple[asyncio.Future, asyncio.Event]:
@@ -61,6 +66,7 @@ class WebshotBot(Client):
         )
         if _id is not None:
             self.request_cache[_id] = user_lock
+            self.settings_cache[_id] = printer.cache_dict()
         request = Request(printer, future, user_lock, waiting_event)
         self.worker.new_task(request)
         return future, waiting_event

@@ -1,7 +1,7 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
-from typing import Dict, Union, Literal, TypedDict
+from typing import Union, Literal, TypedDict
 from pyrogram.types import Message
 from pathlib import Path
 from re import sub
@@ -11,6 +11,16 @@ import io
 _LOC = Union[Path, io.BytesIO]
 _RTYPE = Literal["pdf", "png", "jpeg", "statics"]
 _SCROLL = Literal["no", "manual", "auto"]
+_CDICT = TypedDict(
+    "_CDICT",
+    {
+        "type": _RTYPE,
+        "split": bool,
+        "fullpage": bool,
+        "scroll_control": _SCROLL,
+        "resolution": str,
+    },
+)
 
 
 class Printer(object):
@@ -32,6 +42,15 @@ class Printer(object):
             f"|- Format - > `{self.type}`\n|- Resolution - > `{res}`\n"
             f"|- Page - > `{self.fullpage}`\n|- ScrollControl - > `{self.scroll_control}`\n"
             f"|- Split - > `{self.split}`\n|- `{self.link}`"
+        )
+
+    def cache_dict(self) -> _CDICT:
+        return dict(
+            type=self.type,
+            split=self.split,
+            fullpage=self.fullpage,
+            scroll_control=self.scroll_control,
+            resolution="{}x{}".format(*self.resolution.values()),
         )
 
     @property

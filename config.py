@@ -1,12 +1,18 @@
+from contextlib import suppress
+from dotenv import load_dotenv
+from typing import Optional
 import os
 
 
-def init_log() -> int:
-    return (
-        int(log_group)  # type: ignore
-        if (log_group := os.environ.get("LOG_GROUP")) is not None
-        else None
-    )
+def init_log() -> Optional[int]:
+    if (log_group := os.environ.get("LOG_GROUP")) is not None:
+        with suppress(ValueError):
+            return int(log_group)
+    return None
+
+
+if os.path.isfile("config.env"):
+    load_dotenv("config.env")
 
 
 class Config:

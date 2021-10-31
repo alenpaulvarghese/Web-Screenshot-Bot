@@ -1,38 +1,97 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
-from config import Config
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from webshotbot import WebshotBot
 from pyrogram import filters
+from config import Config
 import os
 
 
 @WebshotBot.on_message(
     filters.regex(pattern="http[s]*://.+") & filters.private & ~filters.edited
 )
-async def checker(_, message: Message):
+async def checker(client: WebshotBot, message: Message):
     msg = await message.reply_text("working", True)
+    markup = []
+    _settings = client.get_settings_cache(message.chat.id)
+    if _settings is None:
+        _settings = dict(
+            type="pdf",
+            fullpage=True,
+            scroll_control="no",
+            resolution="800x600",
+            split=False,
+        )
+    markup.extend(
+        [
+            [
+                InlineKeyboardButton(
+                    text=f"Format - {_settings['type'].upper()}",
+                    callback_data="format",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=f"Page - {'Full' if _settings['fullpage'] else 'Partial'}",
+                    callback_data="page",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=f"Scroll Site - {_settings['scroll_control'].title()}",
+                    callback_data="scroll",
+                )
+            ],
+        ]
+    )
+    _split = _settings["split"]
+    _resolution = _settings["resolution"]
+    if _split or "600" not in _resolution:
+        markup.extend(
+            [
+                [
+                    InlineKeyboardButton(
+                        text="hide additional options ˄", callback_data="options"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        text=f"resolution | {_resolution}", callback_data="res"
+                    ),
+                ],
+                [
+                    InlineKeyboardButton(
+                        text=f"Split - {'Yes' if _split else 'No'}",
+                        callback_data="splits",
+                    )
+                ]
+                if _settings["type"] != "pdf"
+                else [],
+                [
+                    InlineKeyboardButton(
+                        text="▫️ site statitics ▫️", callback_data="statics"
+                    )
+                ],
+            ]
+        )
+    else:
+        markup.append(
+            [
+                InlineKeyboardButton(
+                    text="show additional options ˅", callback_data="options"
+                )
+            ]
+        )
+    markup.extend(
+        [
+            [InlineKeyboardButton(text="▫️ start render ▫️", callback_data="render")],
+            [InlineKeyboardButton(text="cancel", callback_data="cancel")],
+        ]
+    )
     await msg.edit(
         text="Choose the prefered settings",
-        reply_markup=InlineKeyboardMarkup(
-            [
-                [InlineKeyboardButton(text="Format - PDF", callback_data="format")],
-                [InlineKeyboardButton(text="Page - Full", callback_data="page")],
-                [InlineKeyboardButton(text="Scroll Site - No", callback_data="scroll")],
-                [
-                    InlineKeyboardButton(
-                        text="show additional options ˅", callback_data="options"
-                    )
-                ],
-                [
-                    InlineKeyboardButton(
-                        text="▫️ start render ▫️", callback_data="render"
-                    )
-                ],
-                [InlineKeyboardButton(text="cancel", callback_data="cancel")],
-            ]
-        ),
+        reply_markup=InlineKeyboardMarkup(markup),
     )
 
 

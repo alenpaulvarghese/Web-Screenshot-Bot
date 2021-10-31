@@ -29,20 +29,19 @@ cd Web-Screenshot-Bot
 virtualenv -p /usr/bin/python3 venv
 . ./venv/bin/activate
 pip3 install -r requirements.txt
-# <Create config.py appropriately>
+# <Create config.env appropriately>
 python3 __main__.py
 ```
-#### an example config.py 👇
-```py
-class Config:
-    BOT_TOKEN = "12345:49dc3eeb1aehda3cI2TesHNHc"
-    API_ID = 256123
-    API_HASH = "eb06d4abfb49dc3eeb1aeb98ae0f581e"
-    # Leave this None to automatically download chrome binary
-    EXEC_PATH = None
-    # Optional Fields
-    LOG_GROUP = -123990002
-    SUPPORT_GROUP_LINK = "https://t.me/bytessupport"
+#### an example config.env 👇
+```sh
+BOT_TOKEN=12345:49dc3eeb1aehda3cI2TesHNHc
+API_ID=256123
+API_HASH=eb06d4abfb49dc3eeb1aeb98ae0f581e
+### CHROME EXEC PATH ? LEAVE THIS BLANK ###
+GOOGLE_CHROME_SHIM=
+### OPTIONAL ###
+LOG_GROUP=-123990002
+SUPPORT_GROUP_LINK=https://t.me/bytessupport
 ```
 
 

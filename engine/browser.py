@@ -65,10 +65,10 @@ async def screenshot_engine(
             )
             printer.set_location(byteio_file)
         else:
-            if printer.scroll_control is not None and printer.fullpage is True:
-                if printer.scroll_control is False:
+            if printer.scroll_control != "no" and printer.fullpage is True:
+                if printer.scroll_control == "auto":
                     await page.evaluate("scroll(getHeight());")
-                elif printer.scroll_control is True:
+                elif printer.scroll_control == "manual":
                     asyncio.create_task(page.evaluate("progressiveScroll();"))
                     await user_lock.wait()
                     await page.evaluate("cancelScroll()")

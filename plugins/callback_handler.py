@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
-from helper import mediagroup_gen, settings_parser, split_image
+from helper import mediagroup_gen, split_image
 from plugins.command_handler import (
     feedback,
 )
@@ -17,10 +17,7 @@ import asyncio
 async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
     await callback_query.answer("processing your request")
     message = await callback_query.message.edit("**processing...**")
-    printer = await settings_parser(
-        callback_query.message.reply_to_message.text,
-        callback_query.message.reply_markup.inline_keyboard,
-    )
+    printer = Printer.from_message(callback_query.message)
     printer.allocate_folder(
         callback_query.message.chat.id, callback_query.message.message_id
     )
@@ -33,7 +30,7 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
             reply_markup=InlineKeyboardMarkup(
                 [[InlineKeyboardButton("render now", "release")]]
             )
-            if printer.scroll_control
+            if printer.scroll_control == "manual"
             else None,
         )
         if Config.LOG_GROUP is not None:

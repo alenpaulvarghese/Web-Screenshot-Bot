@@ -1,23 +1,36 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
-from typing import Optional, Union, Literal
+from typing import Union, Literal, TypedDict
+from pyrogram.types import Message
 from pathlib import Path
 from re import sub
 import shutil
 import io
 
 _LOC = Union[Path, io.BytesIO]
+_RTYPE = Literal["pdf", "png", "jpeg", "statics"]
+_SCROLL = Literal["no", "manual", "auto"]
+_CDICT = TypedDict(
+    "_CDICT",
+    {
+        "type": _RTYPE,
+        "split": bool,
+        "fullpage": bool,
+        "scroll_control": _SCROLL,
+        "resolution": str,
+    },
+)
 
 
 class Printer(object):
-    def __init__(self, _type: Literal["pdf", "png", "jpeg", "statics"], _link: str):
+    def __init__(self, _type: _RTYPE, _link: str):
         self.resolution = {"width": 800, "height": 600}
-        self.type = _type
         self.link = _link
         self.split = False
         self.fullpage = True
-        self.scroll_control: Optional[bool] = False
+        self.type: _RTYPE = _type
+        self.scroll_control: _SCROLL = "no"
         self.location: _LOC = Path("./FILES")
         self.name = "@Webs-Screenshot"
 
@@ -29,6 +42,15 @@ class Printer(object):
             f"|- Format - > `{self.type}`\n|- Resolution - > `{res}`\n"
             f"|- Page - > `{self.fullpage}`\n|- ScrollControl - > `{self.scroll_control}`\n"
             f"|- Split - > `{self.split}`\n|- `{self.link}`"
+        )
+
+    def cache_dict(self) -> _CDICT:
+        return dict(
+            type=self.type,
+            split=self.split,
+            fullpage=self.fullpage,
+            scroll_control=self.scroll_control,
+            resolution="{}x{}".format(*self.resolution.values()),
         )
 
     @property
@@ -87,3 +109,38 @@ class Printer(object):
     def set_location(self, loc: _LOC) -> None:
         """Set value for location attribute."""
         self.location = loc
+
+    @staticmethod
+    def from_message(message: Message) -> "Printer":
+        """Function that parse render settings from message."""
+        split, resolution, scroll_control = False, "", "no"
+        for settings in message.reply_markup.inline_keyboard:
+            text = settings[0].text
+            if "Format" in text:
+                if "PDF" in text:
+                    _format = "pdf"
+                else:
+                    _format = "png" if "PNG" in text else "jpeg"
+            if "Page" in text:
+                page_value = True if "Full" in text else False
+            if "Scroll" in text:
+                if "Auto" in text:
+                    scroll_control = "auto"
+                elif "Manual" in text:
+                    scroll_control = "manual"
+            if "Split" in text:
+                split = True if "Yes" in text else False
+            if "resolution" in text:
+                resolution = text
+        printer = Printer(_format, message.reply_to_message.text)  # type: ignore
+        printer.scroll_control = scroll_control  # type: ignore
+        printer.fullpage = page_value
+        printer.split = split
+        if resolution:
+            if "1280" in resolution:
+                printer.resolution = {"width": 1280, "height": 720}
+            elif "2560" in resolution:
+                printer.resolution = {"width": 2560, "height": 1440}
+            elif "640" in resolution:
+                printer.resolution = {"width": 640, "height": 480}
+        return printer

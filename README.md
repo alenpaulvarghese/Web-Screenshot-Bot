@@ -26,9 +26,8 @@ Simply clone the repository and run the main file:
 ```sh
 git clone https://github.com/alenpaul2001/Web-Screenshot-Bot.git
 cd Web-Screenshot-Bot
-virtualenv -p /usr/bin/python3 venv
-. ./venv/bin/activate
-pip3 install -r requirements.txt
+python -m pip install poetry
+poetry install --no-dev && poetry shell
 # <Create config.env appropriately>
 python3 __main__.py
 ```

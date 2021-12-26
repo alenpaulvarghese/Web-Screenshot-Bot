@@ -1,13 +1,15 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
+import asyncio
+import logging
+import time
+from typing import Optional
+
+from pyppeteer.browser import Browser
+
 from engine.browser import launch_browser, screenshot_engine
 from engine.request import Request, StopCode
-from pyppeteer.browser import Browser
-from typing import Optional
-import logging
-import asyncio
-import time
 
 _LOG = logging.getLogger(__name__)
 
@@ -27,6 +29,8 @@ class Worker(object):
         _LOG.info("Shutting down worker")
         while self.queue.qsize() != 0:
             task = await self.queue.get()
+            if isinstance(task, StopCode):
+                return
             task.waiting_event.set()
             task.future_data.set_exception(
                 Exception("Server is shutting down please try again later")

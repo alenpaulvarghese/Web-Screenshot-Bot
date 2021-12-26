@@ -1,11 +1,12 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
-from pathlib import Path
-from PIL import Image, ImageFont, ImageDraw
-from typing import List
-import math
 import io
+import math
+from pathlib import Path
+from typing import List
+
+from PIL import Image, ImageDraw, ImageFont
 
 
 # https://stackoverflow.com/questions/25705773/image-cropping-tool-python

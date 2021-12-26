@@ -1,16 +1,16 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
-from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
-from helper import mediagroup_gen, split_image
-from plugins.command_handler import (
-    feedback,
-)
-from helper.printer import Printer
-from webshotbot import WebshotBot
-from pyrogram import filters
-from config import Config
 import asyncio
+
+from config import Config
+from helper import mediagroup_gen, split_image
+from helper.printer import Printer
+from pyrogram import filters
+from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from webshotbot import WebshotBot
+
+from plugins.command_handler import feedback
 
 
 @WebshotBot.on_callback_query(filters.create(lambda _, __, c: c.data == "render"))

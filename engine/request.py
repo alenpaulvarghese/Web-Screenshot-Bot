@@ -1,8 +1,9 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
-from asyncio import Future, Event
+from asyncio import Event, Future
 from typing import NamedTuple
+
 from helper import Printer
 
 

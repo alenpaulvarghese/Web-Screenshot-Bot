@@ -1,12 +1,13 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
-from typing import Union, Literal, TypedDict
-from pyrogram.types import Message
+import io
+import shutil
 from pathlib import Path
 from re import sub
-import shutil
-import io
+from typing import Literal, TypedDict, Union
+
+from pyrogram.types import Message
 
 _LOC = Union[Path, io.BytesIO]
 _RTYPE = Literal["pdf", "png", "jpeg", "statics"]

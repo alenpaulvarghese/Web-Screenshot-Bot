@@ -1,7 +1,8 @@
-from contextlib import suppress
-from dotenv import load_dotenv
-from typing import Optional
 import os
+from contextlib import suppress
+from typing import Optional
+
+from dotenv import load_dotenv
 
 
 def init_log() -> Optional[int]:

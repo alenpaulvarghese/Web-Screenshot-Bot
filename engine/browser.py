@@ -1,15 +1,15 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
-from http.client import BadStatusLine, ResponseNotReady
-from helper.images import draw_statics
-from pyppeteer.browser import Browser
-from pyppeteer import launch, errors
-from helper import inject_reader
-from helper import Printer
-from config import Config
-import logging
 import asyncio
+import logging
+from http.client import BadStatusLine, ResponseNotReady
+
+from config import Config
+from helper import Printer, inject_reader
+from helper.images import draw_statics
+from pyppeteer import errors, launch
+from pyppeteer.browser import Browser
 
 _LOG = logging.getLogger(__name__)
 

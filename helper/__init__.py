@@ -1,11 +1,13 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
-from .images import split_image, draw_statics  # noqa
-from pyrogram.types import InputMediaPhoto
-from typing import Iterator, List
-from .printer import Printer, _CDICT  # noqa
 from pathlib import Path
+from typing import Iterator, List
+
+from pyrogram.types import InputMediaPhoto
+
+from .images import draw_statics, split_image  # noqa
+from .printer import _CDICT, Printer  # noqa
 
 
 def mediagroup_gen(loc: List[Path]) -> Iterator[List[InputMediaPhoto]]:

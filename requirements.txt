@@ -1,6 +1,0 @@
-Pillow
-pyrogram
-tgcrypto
-pyppeteer
-cachetools
-python-dotenv

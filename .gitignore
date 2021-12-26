@@ -4,3 +4,4 @@ debug.log
 *.session
 *.pyc
 *.env
+.vscode

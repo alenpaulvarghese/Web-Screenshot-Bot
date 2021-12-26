@@ -19,14 +19,23 @@ RUN apt-get update \
 	--no-install-recommends \
 	&& rm -rf /var/lib/apt/lists/*
 
+ENV GOOGLE_CHROME_SHIM=/usr/bin/google-chrome \
+	# pip
+	PIP_NO_CACHE_DIR=off \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PIP_DEFAULT_TIMEOUT=100 \
+    # do not ask any interactive question
+    POETRY_NO_INTERACTION=1
 
-ENV GOOGLE_CHROME_SHIM /usr/bin/google-chrome
+RUN pip install poetry
 
 # clone repository
 RUN git clone https://github.com/alenpaul2001/Web-Screenshot-Bot /app
 
+COPY poetry.lock pyproject.toml /app/
+
 # install dependencies
-RUN pip3 install -r requirements.txt
+RUN poetry config virtualenvs.create false && poetry install --no-dev --no-ansi
 
 # run the program
 CMD ["python", "."]

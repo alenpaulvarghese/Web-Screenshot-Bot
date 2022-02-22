@@ -6,7 +6,7 @@ authors = ["alenpaul2001 <alenpaul2001@gmail.com>"]
 license = "AGPL-3.0-only"
 
 [tool.poetry.dependencies]
-python = "3.10"
+python = "^3.10"
 Pillow = "^8.4.0"
 Pyrogram = "^1.2.20"
 TgCrypto = "^1.2.2"

@@ -62,8 +62,11 @@ class WebshotBot(Client):
         future = asyncio.get_event_loop().create_future()
         user_lock = asyncio.Event()
         waiting_event = asyncio.Event()
+        print(Config.REQUEST_TIMEOUT)
         asyncio.create_task(
-            self.release_user_lock(user_lock, 30 if printer.scroll_control else 2)
+            self.release_user_lock(
+                user_lock, Config.REQUEST_TIMEOUT if printer.scroll_control else 2
+            )
         )
         if _id is not None:
             self.request_cache[_id] = user_lock

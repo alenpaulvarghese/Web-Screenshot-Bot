@@ -6,6 +6,7 @@ import logging
 import time
 from typing import Optional
 
+from config import Config
 from pyppeteer.browser import Browser
 
 from engine.browser import launch_browser, screenshot_engine
@@ -57,7 +58,7 @@ class Worker(object):
                 self.current_task = asyncio.create_task(
                     screenshot_engine(_browser, task.printer, task.user_lock)
                 )
-                await asyncio.wait_for(self.current_task, 50)
+                await asyncio.wait_for(self.current_task, Config.REQUEST_TIMEOUT + 20)
                 task.future_data.set_result(0)
                 _LOG.info(
                     "Took {:.2f} to statisfy the request".format(

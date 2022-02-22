@@ -12,6 +12,12 @@ def init_log() -> Optional[int]:
     return None
 
 
+def init_request_timeout() -> int:
+    if (request_timeout := os.environ.get("REQUEST_TIMEOUT", "30")) is not None:
+        with suppress(ValueError):
+            return int(request_timeout)
+
+
 if os.path.isfile("config.env"):
     load_dotenv("config.env")
 
@@ -23,4 +29,5 @@ class Config:
     EXEC_PATH = os.environ.get("GOOGLE_CHROME_SHIM", None)
     # OPTIONAL
     LOG_GROUP = init_log()
+    REQUEST_TIMEOUT = init_request_timeout()
     SUPPORT_GROUP_LINK = os.environ.get("SUPPORT_GROUP", "https://t.me/bytessupport")

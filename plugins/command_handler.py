@@ -10,7 +10,9 @@ from webshotbot import WebshotBot
 
 
 @WebshotBot.on_message(
-    filters.regex(pattern="http[s]*://.+") & filters.private & ~filters.edited
+    filters.regex(pattern="http[s]*://.+")
+    & filters.private
+    & ~filters.create(lambda _, __, m: bool(m.edit_date))
 )
 async def checker(client: WebshotBot, message: Message):
     msg = await message.reply_text("working", True)

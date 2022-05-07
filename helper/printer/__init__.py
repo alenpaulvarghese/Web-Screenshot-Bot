@@ -142,6 +142,6 @@ class Printer(object):
                 printer.resolution = {"width": 1280, "height": 720}
             elif "2560" in resolution:
                 printer.resolution = {"width": 2560, "height": 1440}
-            elif "640" in resolution:
-                printer.resolution = {"width": 640, "height": 480}
+            elif "1080" in resolution:
+                printer.resolution = {"width": 1080, "height": 1920}
         return printer

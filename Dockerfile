@@ -29,10 +29,8 @@ ENV GOOGLE_CHROME_SHIM=/usr/bin/google-chrome \
 
 RUN pip install poetry
 
-# clone repository
-RUN git clone https://github.com/alenpaul2001/Web-Screenshot-Bot /app
-
-COPY poetry.lock pyproject.toml /app/
+# copy the source into the virtual space
+COPY . /app/
 
 # install dependencies
 RUN poetry config virtualenvs.create false && poetry install --no-dev --no-ansi

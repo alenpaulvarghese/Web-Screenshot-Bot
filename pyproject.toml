@@ -1,24 +1,24 @@
 [tool.poetry]
 name = "web-screenshot-bot"
-version = "0.3.2"
+version = "0.4.0"
 description = "A simple telegram bot to take screenshot of a given website and upload it to telegram"
 authors = ["alenpaul2001 <alenpaul2001@gmail.com>"]
 license = "AGPL-3.0-only"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-Pillow = "^8.4.0"
-Pyrogram = "^1.2.20"
-TgCrypto = "^1.2.2"
-pyppeteer = "^0.2.6"
+Pillow = "^9.1"
+Pyrogram = "^2.0"
+TgCrypto = "^1.2"
+pyppeteer = "^1.0"
 cachetools = "^5.0.0"
-python-dotenv = "^0.19.2"
+python-dotenv = "^0.20.0"
 
 [tool.poetry.dev-dependencies]
-mypy = "^0.930"
+mypy = "^0.950"
 flake8 = "^4.0.1"
-black = "^21.12b0"
-rich = "^10.16.1"
+black = "^22.3"
+rich = "^12.4"
 pytest = "^6.2.5"
 
 [build-system]

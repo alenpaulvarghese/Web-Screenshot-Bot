@@ -10,9 +10,9 @@ Telegram Bot that creates screenshot _[PNG/JPEG]_ or PDF of a given link. Can be
 
 ### Available Resolutions are :
 
-1. 640x480
-2. 800x600
-3. 1280x720
+1. 800x600
+2. 1280x720
+3. 1920x1080
 4. 2560x1440
 
 Splitting of long pages are available for png and jpeg.

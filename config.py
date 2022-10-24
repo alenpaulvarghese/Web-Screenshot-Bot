@@ -13,9 +13,10 @@ def init_log() -> Optional[int]:
 
 
 def init_request_timeout() -> int:
-    if (request_timeout := os.environ.get("REQUEST_TIMEOUT", "30")) is not None:
-        with suppress(ValueError):
-            return int(request_timeout)
+    request_timeout = os.environ.get("REQUEST_TIMEOUT", "30")
+    with suppress(ValueError):
+        return int(request_timeout)
+    return 30
 
 
 if os.path.isfile("config.env"):

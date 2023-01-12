@@ -1,6 +1,7 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
+import asyncio
 import io
 import math
 from pathlib import Path
@@ -29,21 +30,17 @@ def split_image(filename: Path) -> List[Path]:
         working_slice = img.crop(bbox)
         upper += slice_size
         # saving = the slice
-        location_to_save_slice = (
-            filename.parent / f"@Webs.ScreenCapture-{str(count)}{filename.suffix}"
-        )
-        working_slice.save(
-            fp=location_to_save_slice, format=filename.suffix.removeprefix(".")
-        )
+        location_to_save_slice = filename.parent / f"@Webs.ScreenCapture-{str(count)}{filename.suffix}"
+        working_slice.save(fp=location_to_save_slice, format=filename.suffix.removeprefix("."))
         location_of_image.append(location_to_save_slice)
         count += 1
     img.close()
     return location_of_image
 
 
-def draw_statics(name: str, metrics: dict) -> io.BytesIO:
+def _draw_statics(name: str, metrics: dict) -> io.BytesIO:
     """Function to generate statics image."""
-    font_path = Path("assets", "fonts", "DMSans-Bold.ttf").__str__()
+    font_path = str(Path("assets", "fonts", "DMSans-Bold.ttf"))
     font = ImageFont.truetype(font_path, size=1)
     font_size = 1
     # https://stackoverflow.com/a/4902713/13033981
@@ -62,10 +59,11 @@ def draw_statics(name: str, metrics: dict) -> io.BytesIO:
     font = ImageFont.truetype(font_path, size=28)
     draw.multiline_text((1185, 215), metrics_paper, fill="white", font=font, spacing=15)
     return_object = io.BytesIO()
-    main_paper.save(
-        return_object,
-        format="png",
-    )
+    main_paper.save(return_object, format="png")
     main_paper.close()
     return_object.name = "@Web-Screenshot.png"
     return return_object
+
+
+async def render_statics(name: str, metrics: dict) -> io.BytesIO:
+    return await asyncio.get_running_loop().run_in_executor(None, _draw_statics, name, metrics)

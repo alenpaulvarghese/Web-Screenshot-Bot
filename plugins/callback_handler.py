@@ -3,18 +3,19 @@
 
 import asyncio
 
-from config import Config
-from helper import mediagroup_gen, split_image
-from helper.printer import Printer
 from pyrogram import filters
 from pyrogram.enums import ChatAction
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+
+from config import Config
+from helper import mediagroup_gen
+from helper.images import split_image
+from helper.printer import Printer, RenderType
+from plugins.command_handler import feedback
 from webshotbot import WebshotBot
 
-from plugins.command_handler import feedback
 
-
-@WebshotBot.on_callback_query(filters.create(lambda _, __, c: c.data == "render"))
+@WebshotBot.on_callback_query(filters.create(lambda _, __, c: c.data == "render"))  # type: ignore
 async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
     await callback_query.answer("processing your request")
     message = await callback_query.message.edit("**processing...**")
@@ -26,9 +27,7 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
         await wait_event.wait()
         await message.edit(
             "**rendering the website...**",
-            reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton("render now", "release")]]
-            )
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("render now", "release")]])
             if printer.scroll_control == "manual"
             else None,
         )
@@ -47,17 +46,13 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
         return
     await message.edit("**uploading...**")
     if printer.split and printer.fullpage:
-        loc_of_images = await asyncio.get_event_loop().run_in_executor(
-            None, split_image, printer.file
-        )
+        loc_of_images = await asyncio.get_event_loop().run_in_executor(None, split_image, printer.file)
         for media_group in mediagroup_gen(loc_of_images):
             await asyncio.gather(
                 callback_query.message.reply_chat_action(ChatAction.UPLOAD_PHOTO),
-                callback_query.message.reply_media_group(
-                    media_group, disable_notification=True
-                ),
+                callback_query.message.reply_media_group(media_group, disable_notification=True),
             )
-    elif printer.type == "pdf" or printer.fullpage:
+    elif printer.type == RenderType.PDF or printer.fullpage:
         await asyncio.gather(
             callback_query.message.reply_chat_action(ChatAction.UPLOAD_DOCUMENT),
             callback_query.message.reply_document(printer.file),
@@ -69,9 +64,7 @@ async def primary_cb(client: WebshotBot, callback_query: CallbackQuery):
         )
     await asyncio.gather(
         message.delete(),
-        message.reply_text(
-            '__Please toggle "Scroll Site" setting if the output has no content.__'
-        ),
+        message.reply_text('__Please toggle "Scroll Site" setting if the output has no content.__'),
     )
     printer.cleanup()
 
@@ -90,7 +83,7 @@ async def release_cb(client: WebshotBot, callback_query: CallbackQuery):
 @WebshotBot.on_callback_query(filters.create(lambda _, __, c: c.data == "statics"))
 async def statics_cb(client: WebshotBot, callback_query: CallbackQuery):
     await callback_query.answer("processing")
-    printer = Printer("statics", callback_query.message.reply_to_message.text)
+    printer = Printer(RenderType.STATS, callback_query.message.reply_to_message.text)
     message = await callback_query.message.edit("**please wait you are in a queue...**")
     try:
         future, wait_event = client.new_request(printer)
@@ -120,18 +113,14 @@ async def keyboards_cb(_, callback_query: CallbackQuery):
             ("Split - No" if "Yes" in current_boolean.text else "Split - Yes"),
             "splits",
         )
-        await msg.edit(
-            text="Choose the prefered settings", reply_markup=msg.reply_markup
-        )
+        await msg.edit(text="Choose the prefered settings", reply_markup=msg.reply_markup)
 
     elif cb_data == "page":
         current_page = msg.reply_markup.inline_keyboard[1][0]
         msg.reply_markup.inline_keyboard[1][0] = InlineKeyboardButton(
             ("Page - Partial" if "Full" in current_page.text else "Page - Full"), "page"
         )
-        await msg.edit(
-            text="Choose the prefered settings", reply_markup=msg.reply_markup
-        )
+        await msg.edit(text="Choose the prefered settings", reply_markup=msg.reply_markup)
 
     elif cb_data == "scroll":
         current_load = msg.reply_markup.inline_keyboard[2][0]
@@ -141,29 +130,17 @@ async def keyboards_cb(_, callback_query: CallbackQuery):
             text = "Manual"
         elif "Manual" in current_load.text:
             text = "No"
-        msg.reply_markup.inline_keyboard[2][0] = InlineKeyboardButton(
-            f"Scroll Site - {text}", "scroll"
-        )
-        await msg.edit(
-            text="Choose the prefered settings", reply_markup=msg.reply_markup
-        )
+        msg.reply_markup.inline_keyboard[2][0] = InlineKeyboardButton(f"Scroll Site - {text}", "scroll")
+        await msg.edit(text="Choose the prefered settings", reply_markup=msg.reply_markup)
 
     elif cb_data == "options":
         current_option = msg.reply_markup.inline_keyboard[3][0].text
         current_format = msg.reply_markup.inline_keyboard[0][0].text
-        options_to_change = (
-            "hide additional options ˄"
-            if "show" in current_option
-            else "show additional options ˅"
-        )
+        options_to_change = "hide additional options ˄" if "show" in current_option else "show additional options ˅"
         if "hide" in options_to_change:
             msg.reply_markup.inline_keyboard.insert(
                 -2,
-                [
-                    InlineKeyboardButton(
-                        text="resolution | 800x600", callback_data="res"
-                    )
-                ],
+                [InlineKeyboardButton(text="resolution | 800x600", callback_data="res")],
             )
             if "PDF" not in current_format:
                 msg.reply_markup.inline_keyboard.insert(
@@ -172,21 +149,13 @@ async def keyboards_cb(_, callback_query: CallbackQuery):
                 )
             msg.reply_markup.inline_keyboard.insert(
                 -2,
-                [
-                    InlineKeyboardButton(
-                        text="▫️ site statitics ▫️", callback_data="statics"
-                    )
-                ],
+                [InlineKeyboardButton(text="▫️ site statitics ▫️", callback_data="statics")],
             )
         else:
             for _ in range((2 if "PDF" in current_format else 3)):
                 msg.reply_markup.inline_keyboard.pop(-3)
-        msg.reply_markup.inline_keyboard[3][0] = InlineKeyboardButton(
-            options_to_change, "options"
-        )
-        await msg.edit(
-            text="Choose the prefered settings", reply_markup=msg.reply_markup
-        )
+        msg.reply_markup.inline_keyboard[3][0] = InlineKeyboardButton(options_to_change, "options")
+        await msg.edit(text="Choose the prefered settings", reply_markup=msg.reply_markup)
 
     elif cb_data == "res":
         current_res = msg.reply_markup.inline_keyboard[4][0].text
@@ -198,12 +167,8 @@ async def keyboards_cb(_, callback_query: CallbackQuery):
             res_to_change = "resolution | 2560x1440"
         else:
             res_to_change = "resolution | 800x600"
-        msg.reply_markup.inline_keyboard[4][0] = InlineKeyboardButton(
-            res_to_change, "res"
-        )
-        await msg.edit(
-            text="Choose the prefered settings", reply_markup=msg.reply_markup
-        )
+        msg.reply_markup.inline_keyboard[4][0] = InlineKeyboardButton(res_to_change, "res")
+        await msg.edit(text="Choose the prefered settings", reply_markup=msg.reply_markup)
 
     elif cb_data == "format":
         current_format = msg.reply_markup.inline_keyboard[0][0]
@@ -220,12 +185,8 @@ async def keyboards_cb(_, callback_query: CallbackQuery):
             format_to_change = "Format - PDF"
             if "hide" in msg.reply_markup.inline_keyboard[3][0].text:
                 msg.reply_markup.inline_keyboard.pop(-4)
-        msg.reply_markup.inline_keyboard[0][0] = InlineKeyboardButton(
-            format_to_change, "format"
-        )
-        await msg.edit(
-            text="Choose the prefered settings", reply_markup=msg.reply_markup
-        )
+        msg.reply_markup.inline_keyboard[0][0] = InlineKeyboardButton(format_to_change, "format")
+        await msg.edit(text="Choose the prefered settings", reply_markup=msg.reply_markup)
 
     elif cb_data == "cancel":
         await callback_query.answer("Canceled your request..!")

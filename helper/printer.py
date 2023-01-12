@@ -3,36 +3,50 @@
 
 import io
 import shutil
+from enum import Enum
 from pathlib import Path
 from re import sub
-from typing import Literal, TypedDict, Union
+from typing import TypedDict, Union
 
 from pyrogram.types import Message
 
-_LOC = Union[Path, io.BytesIO]
-_RTYPE = Literal["pdf", "png", "jpeg", "statics"]
-_SCROLL = Literal["no", "manual", "auto"]
-_CDICT = TypedDict(
-    "_CDICT",
-    {
-        "type": _RTYPE,
-        "split": bool,
-        "fullpage": bool,
-        "scroll_control": _SCROLL,
-        "resolution": str,
-    },
-)
+
+class RenderType(Enum):
+    PDF = "pdf"
+    PNG = "png"
+    JPEG = "jpeg"
+
+    @staticmethod
+    def is_image(render_type: "RenderType") -> bool:
+        return render_type in (RenderType.JPEG, RenderType.PNG)
+
+
+class ScrollMode(Enum):
+    OFF = "no"
+    MANUAL = "manual"
+    AUTO = "auto"
+
+
+class CacheData(TypedDict):
+    split: bool
+    fullpage: bool
+    resolution: str
+    render_type: RenderType
+    scroll_control: ScrollMode
+
+
+Location = Union[Path, io.BytesIO]
 
 
 class Printer(object):
-    def __init__(self, _type: _RTYPE, _link: str):
+    def __init__(self, render_type: RenderType, link: str):
         self.resolution = {"width": 800, "height": 600}
-        self.link = _link
+        self.link = link
         self.split = False
         self.fullpage = True
-        self.type: _RTYPE = _type
-        self.scroll_control: _SCROLL = "no"
-        self.location: _LOC = Path("./FILES")
+        self.type = render_type
+        self.scroll_control = ScrollMode.OFF
+        self.location: Location = Path("./FILES")
         self.name = "@Webs-Screenshot"
 
     def _get_logstr(self, _id: int, name: str) -> str:
@@ -45,47 +59,45 @@ class Printer(object):
             f"|- Split - > `{self.split}`\n|- `{self.link}`"
         )
 
-    def cache_dict(self) -> _CDICT:
-        return dict(
-            type=self.type,
+    def cache_dict(self) -> CacheData:
+        return CacheData(
+            render_type=self.type,
             split=self.split,
             fullpage=self.fullpage,
             scroll_control=self.scroll_control,
-            resolution="{}x{}".format(*self.resolution.values()),
+            resolution="{width}x{height}".format_map(self.resolution),
         )
 
-    @property
-    def print_arguments(self) -> dict:
-        """Dict containing arguments used to feed chromium."""
-        if self.type == "pdf":
+    def get_render_arguments(self) -> dict:
+        """Dict containing arguments used to feed browser."""
+        if self.type == RenderType.PDF:
             arguments_for_pdf = {
-                "displayHeaderFooter": True,
-                "margin": {"bottom": 70, "left": 25, "right": 35, "top": 40},
-                "printBackground": True,
+                "display_header_footer": True,
+                "margin": {"bottom": "70", "left": "25", "right": "35", "top": "40"},
+                "print_background": True,
             }
             if self.resolution["width"] == 800:
                 arguments_for_pdf["format"] = "Letter"
             else:
-                arguments_for_pdf = {**arguments_for_pdf, **self.resolution}
+                arguments_for_pdf.update(self.resolution)
             if not self.fullpage:
-                arguments_for_pdf["pageRanges"] = "1-2"
+                arguments_for_pdf["page_ranges"] = "1-2"
             return arguments_for_pdf
-        elif self.type == "png" or self.type == "jpeg":
-            arguments_for_image = {"type": self.type, "omitBackground": False}
+        if RenderType.is_image(self.type):
+            arguments_for_image = {"type": self.type.value, "omit_background": False}
             if self.fullpage:
-                arguments_for_image["fullPage"] = True
+                arguments_for_image["full_page"] = True
             return arguments_for_image
         return {}
 
     @property
-    def file(self) -> _LOC:
+    def file(self) -> Location:
         """Contains the path to the file or in-memory object."""
         if isinstance(self.location, Path):
-            return self.location / f"{self.name}.{self.type}"
-        else:
-            return self.location
+            return self.location / f"{self.name}.{self.type.value}"
+        return self.location
 
-    def cleanup(self) -> None:
+    def cleanup(self):
         """Cleanup rendered files."""
         if isinstance(self.location, Path):
             try:
@@ -95,8 +107,8 @@ class Printer(object):
         elif isinstance(self.location, io.BytesIO):
             self.location.close()
 
-    def slugify(self, text: str):
-        """Function to convert string to a valid file-name."""
+    def set_filename(self, text: str):
+        """Function that sets slugified filename."""
         # https://stackoverflow.com/a/295466/13033981
         text = sub(r"[^\w\s-]", "", text.lower())
         self.name = sub(r"[-\s]+", "-", text).strip("-_")
@@ -107,30 +119,30 @@ class Printer(object):
         location.mkdir(parents=True, exist_ok=True)
         self.set_location(location)
 
-    def set_location(self, loc: _LOC) -> None:
+    def set_location(self, loc: Location):
         """Set value for location attribute."""
         self.location = loc
 
     @staticmethod
     def from_message(message: Message) -> "Printer":
         """Function that parse render settings from message."""
-        split, resolution, scroll_control = False, "", "no"
+        split, resolution, scroll_control = False, "", ScrollMode.OFF
         for settings in message.reply_markup.inline_keyboard:
             text = settings[0].text
             if "Format" in text:
                 if "PDF" in text:
-                    _format = "pdf"
+                    _format = RenderType.PDF
                 else:
-                    _format = "png" if "PNG" in text else "jpeg"
+                    _format = RenderType.PNG if "PNG" in text else RenderType.JPEG
             if "Page" in text:
-                page_value = True if "Full" in text else False
+                page_value = "Full" in text
             if "Scroll" in text:
                 if "Auto" in text:
-                    scroll_control = "auto"
+                    scroll_control = ScrollMode.AUTO
                 elif "Manual" in text:
-                    scroll_control = "manual"
+                    scroll_control = ScrollMode.MANUAL
             if "Split" in text:
-                split = True if "Yes" in text else False
+                split = "Yes" in text
             if "resolution" in text:
                 resolution = text
         printer = Printer(_format, message.reply_to_message.text)  # type: ignore

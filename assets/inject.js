@@ -1,8 +1,6 @@
 // (c) AlenPaulVarghese
 // -*- coding: utf-8 -*-
 
-var trigger = true;
-
 const getHeight = function () {
     return Math.max(
         document.body.scrollHeight,
@@ -24,7 +22,7 @@ const getWidth = function () {
 };
 
 async function scroll(height) {
-    for (let i = 0; i <= height && trigger; i += 10) {
+    for (let i = 0; i <= height; i += 10) {
         window.scrollTo(0, i);
         await new Promise((r) => setTimeout(r, 1));
     }
@@ -35,9 +33,5 @@ async function progressiveScroll() {
     do {
         initialHeight = getHeight();
         await scroll(initialHeight);
-    } while (initialHeight !== getHeight() && trigger);
+    } while (initialHeight !== getHeight());
 }
-
-const cancelScroll = function () {
-    trigger = false;
-};

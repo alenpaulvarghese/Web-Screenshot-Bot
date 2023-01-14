@@ -3,34 +3,34 @@
 
 import os
 
-from config import Config
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
+
+from config import Config
+from helper.printer import CacheData, RenderType, ScrollMode
 from webshotbot import WebshotBot
 
 
 @WebshotBot.on_message(
-    filters.regex(pattern="http[s]*://.+")
-    & filters.private
-    & ~filters.create(lambda _, __, m: bool(m.edit_date))
+    filters.regex(pattern="http[s]*://.+") & filters.private & ~filters.create(lambda _, __, m: bool(m.edit_date))
 )
 async def checker(client: WebshotBot, message: Message):
     msg = await message.reply_text("working", True)
     markup = []
     _settings = client.get_settings_cache(message.chat.id)
     if _settings is None:
-        _settings = dict(
-            type="pdf",
+        _settings = CacheData(
+            render_type=RenderType.PDF,
             fullpage=True,
-            scroll_control="no",
-            resolution="800x600",
+            scroll_control=ScrollMode.OFF,
+            resolution="Letter",
             split=False,
         )
     markup.extend(
         [
             [
                 InlineKeyboardButton(
-                    text=f"Format - {_settings['type'].upper()}",
+                    text=f"Format - {_settings['render_type'].name.upper()}",
                     callback_data="format",
                 )
             ],
@@ -42,7 +42,7 @@ async def checker(client: WebshotBot, message: Message):
             ],
             [
                 InlineKeyboardButton(
-                    text=f"Scroll Site - {_settings['scroll_control'].title()}",
+                    text=f"Scroll Site - {_settings['scroll_control'].value.title()}",
                     callback_data="scroll",
                 )
             ],
@@ -50,18 +50,12 @@ async def checker(client: WebshotBot, message: Message):
     )
     _split = _settings["split"]
     _resolution = _settings["resolution"]
-    if _split or "600" not in _resolution:
+    if _split or  _resolution != "Letter":
         markup.extend(
             [
+                [InlineKeyboardButton(text="hide additional options ˄", callback_data="options")],
                 [
-                    InlineKeyboardButton(
-                        text="hide additional options ˄", callback_data="options"
-                    )
-                ],
-                [
-                    InlineKeyboardButton(
-                        text=f"resolution | {_resolution}", callback_data="res"
-                    ),
+                    InlineKeyboardButton(text=f"resolution | {_resolution}", callback_data="res"),
                 ],
                 [
                     InlineKeyboardButton(
@@ -69,23 +63,12 @@ async def checker(client: WebshotBot, message: Message):
                         callback_data="splits",
                     )
                 ]
-                if _settings["type"] != "pdf"
+                if _settings["render_type"] != RenderType.PDF
                 else [],
-                [
-                    InlineKeyboardButton(
-                        text="▫️ site statitics ▫️", callback_data="statics"
-                    )
-                ],
             ]
         )
     else:
-        markup.append(
-            [
-                InlineKeyboardButton(
-                    text="show additional options ˅", callback_data="options"
-                )
-            ]
-        )
+        markup.append([InlineKeyboardButton(text="show additional options ˅", callback_data="options")])
     markup.extend(
         [
             [InlineKeyboardButton(text="▫️ start render ▫️", callback_data="render")],
@@ -104,9 +87,7 @@ async def start(_, message: Message) -> None:
         f"<b>Hi {message.from_user.first_name} 👋\n"
         "I can render website of a given link to either PDF or PNG/JPEG</b>",
         quote=True,
-        reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton("❓ About", callback_data="about_cb")]]
-        ),
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❓ About", callback_data="about_cb")]]),
     )
 
 
@@ -137,9 +118,7 @@ async def feedback(_, message: Message) -> None:
     )
 
 
-@WebshotBot.on_message(
-    filters.command(["support", "feedback", "help"]) & filters.private
-)
+@WebshotBot.on_message(filters.command(["support", "feedback", "help"]) & filters.private)
 async def help_handler(_, message: Message) -> None:
     if Config.SUPPORT_GROUP_LINK is not None:
         await message.reply_text(
@@ -154,13 +133,7 @@ async def help_handler(_, message: Message) -> None:
             "[issue](https://github.com/alenpaul2001/Web-Screenshot-Bot) in Github"
             " or send the inquiry message in the support group mentioned below.",
             reply_markup=InlineKeyboardMarkup(
-                [
-                    [
-                        InlineKeyboardButton(
-                            text="Support group", url=Config.SUPPORT_GROUP_LINK
-                        )
-                    ]
-                ]
+                [[InlineKeyboardButton(text="Support group", url=Config.SUPPORT_GROUP_LINK)]]
             ),
             disable_web_page_preview=True,
         )

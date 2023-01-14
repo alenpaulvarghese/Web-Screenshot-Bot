@@ -50,7 +50,7 @@ async def checker(client: WebshotBot, message: Message):
     )
     _split = _settings["split"]
     _resolution = _settings["resolution"]
-    if _split or "600" not in _resolution:
+    if _split or  _resolution != "Letter":
         markup.extend(
             [
                 [InlineKeyboardButton(text="hide additional options ˄", callback_data="options")],
@@ -65,7 +65,6 @@ async def checker(client: WebshotBot, message: Message):
                 ]
                 if _settings["render_type"] != RenderType.PDF
                 else [],
-                [InlineKeyboardButton(text="▫️ site statitics ▫️", callback_data="statics")],
             ]
         )
     else:

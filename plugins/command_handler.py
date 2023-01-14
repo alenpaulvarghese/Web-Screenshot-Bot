@@ -23,7 +23,7 @@ async def checker(client: WebshotBot, message: Message):
             render_type=RenderType.PDF,
             fullpage=True,
             scroll_control=ScrollMode.OFF,
-            resolution="800x600",
+            resolution="Letter",
             split=False,
         )
     markup.extend(

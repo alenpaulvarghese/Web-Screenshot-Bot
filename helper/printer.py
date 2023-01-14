@@ -6,7 +6,7 @@ import shutil
 from enum import Enum
 from pathlib import Path
 from re import sub
-from typing import TypedDict, Union
+from typing import Optional, TypedDict
 
 from pyrogram.types import Message
 
@@ -16,9 +16,8 @@ class RenderType(Enum):
     PNG = "png"
     JPEG = "jpeg"
 
-    @staticmethod
-    def is_image(render_type: "RenderType") -> bool:
-        return render_type in (RenderType.JPEG, RenderType.PNG)
+    def is_image(self) -> bool:
+        return self in (RenderType.JPEG, RenderType.PNG)
 
 
 class ScrollMode(Enum):
@@ -35,9 +34,6 @@ class CacheData(TypedDict):
     scroll_control: ScrollMode
 
 
-Location = Union[Path, io.BytesIO]
-
-
 class Printer(object):
     def __init__(self, render_type: RenderType, link: str):
         self.resolution = {"width": 800, "height": 600}
@@ -46,26 +42,37 @@ class Printer(object):
         self.fullpage = True
         self.type = render_type
         self.scroll_control = ScrollMode.OFF
-        self.location: Location = Path("./FILES")
+        self.location = Path("./FILES")
         self.name = "@Webs-Screenshot"
 
     def _get_logstr(self, _id: int, name: str) -> str:
         """String containing informations for logging."""
-        res = "{width}x{height}".format_map(self.resolution)
+        if self.type.is_image():
+            res = "{width}x{height}".format_map(self.resolution)
+        else:
+            res = self.resolution.get('format')
         return (
             f"|- [{name}](tg://user?id={_id})\n"
-            f"|- Format - > `{self.type}`\n|- Resolution - > `{res}`\n"
-            f"|- Page - > `{self.fullpage}`\n|- ScrollControl - > `{self.scroll_control}`\n"
+            f"|- Format - > `{self.type.name}`\n|- Resolution - > `{res}`\n"
+            f"|- Page - > `{self.fullpage}`\n|- ScrollControl - > `{self.scroll_control.name}`\n"
             f"|- Split - > `{self.split}`\n|- `{self.link}`"
         )
 
+    @property
+    def viewport(self) -> Optional[int]:
+        self.resolution if self.type.is_image() else None
+
     def cache_dict(self) -> CacheData:
+        if self.type.is_image():
+            res = "{width}x{height}".format_map(self.resolution)
+        else:
+            res = self.resolution.get('format')
         return CacheData(
             render_type=self.type,
             split=self.split,
             fullpage=self.fullpage,
             scroll_control=self.scroll_control,
-            resolution="{width}x{height}".format_map(self.resolution),
+            resolution=res,
         )
 
     def get_render_arguments(self) -> dict:
@@ -75,37 +82,34 @@ class Printer(object):
                 "display_header_footer": True,
                 "margin": {"bottom": "70", "left": "25", "right": "35", "top": "40"},
                 "print_background": True,
+                "path": self.file,
+                "format": self.resolution.get('format', 'Letter'),
             }
-            if self.resolution["width"] == 800:
-                arguments_for_pdf["format"] = "Letter"
-            else:
-                arguments_for_pdf.update(self.resolution)
             if not self.fullpage:
                 arguments_for_pdf["page_ranges"] = "1-2"
             return arguments_for_pdf
-        if RenderType.is_image(self.type):
-            arguments_for_image = {"type": self.type.value, "omit_background": False}
+        if self.type.is_image():
+            arguments_for_image = {
+                "type": self.type.value,
+                "omit_background": False,
+                "path": self.file,
+            }
             if self.fullpage:
                 arguments_for_image["full_page"] = True
             return arguments_for_image
         return {}
 
     @property
-    def file(self) -> Location:
-        """Contains the path to the file or in-memory object."""
-        if isinstance(self.location, Path):
-            return self.location / f"{self.name}.{self.type.value}"
-        return self.location
+    def file(self) -> Path:
+        """Contains the path to the rendered file."""
+        return self.location / f"{self.name}.{self.type.value}"
 
     def cleanup(self):
-        """Cleanup rendered files."""
-        if isinstance(self.location, Path):
-            try:
-                shutil.rmtree(self.location)
-            except FileNotFoundError:
-                pass
-        elif isinstance(self.location, io.BytesIO):
-            self.location.close()
+        """Cleanup the rendered files."""
+        try:
+            shutil.rmtree(self.location)
+        except FileNotFoundError:
+            pass
 
     def set_filename(self, text: str):
         """Function that sets slugified filename."""
@@ -115,11 +119,11 @@ class Printer(object):
 
     def allocate_folder(self, chat_id: int, message_id: int):
         """Allocate folder based on chat_id and message_id."""
-        location = Path(self.location, str(chat_id), str(message_id))  # type: ignore
+        location = Path(self.location, str(chat_id), str(message_id))
         location.mkdir(parents=True, exist_ok=True)
         self.set_location(location)
 
-    def set_location(self, loc: Location):
+    def set_location(self, loc: Path):
         """Set value for location attribute."""
         self.location = loc
 
@@ -150,10 +154,13 @@ class Printer(object):
         printer.fullpage = page_value
         printer.split = split
         if resolution:
-            if "1280" in resolution:
-                printer.resolution = {"width": 1280, "height": 720}
-            elif "2560" in resolution:
-                printer.resolution = {"width": 2560, "height": 1440}
-            elif "1080" in resolution:
-                printer.resolution = {"width": 1080, "height": 1920}
+            if printer.type == RenderType.PDF:
+                printer.resolution = dict(format=resolution.removeprefix("resolution | "))  # type: ignore
+            else:
+                if "1280" in resolution:
+                    printer.resolution = {"width": 1280, "height": 720}
+                elif "2560" in resolution:
+                    printer.resolution = {"width": 2560, "height": 1440}
+                elif "1080" in resolution:
+                    printer.resolution = {"width": 1080, "height": 1920}
         return printer

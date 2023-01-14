@@ -43,7 +43,7 @@ class Worker:
         await self.queue.join()
         logger.info("Worker shutdown successfully")
 
-    async def _worker(self) -> None:
+    async def _worker(self):
         async with async_playwright() as playwright:
             logger.info("Worker pool started")
             _browser: Optional[Browser] = None

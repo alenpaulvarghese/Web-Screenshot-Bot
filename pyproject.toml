@@ -10,9 +10,9 @@ python = "^3.10"
 Pillow = "^9.1"
 Pyrogram = "^2.0"
 TgCrypto = "^1.2"
-pyppeteer = "^1.0"
 cachetools = "^5.0.0"
 python-dotenv = "^0.20.0"
+playwright = "^1.29.1"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.950"

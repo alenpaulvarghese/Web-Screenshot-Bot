@@ -1,13 +1,11 @@
 # (c) AlenPaulVarghese
 # -*- coding: utf-8 -*-
 
-import asyncio
-import io
 import math
 from pathlib import Path
 from typing import List
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 
 
 # https://stackoverflow.com/questions/25705773/image-cropping-tool-python
@@ -36,34 +34,3 @@ def split_image(filename: Path) -> List[Path]:
         count += 1
     img.close()
     return location_of_image
-
-
-def _draw_statics(name: str, metrics: dict) -> io.BytesIO:
-    """Function to generate statics image."""
-    font_path = str(Path("assets", "fonts", "DMSans-Bold.ttf"))
-    font = ImageFont.truetype(font_path, size=1)
-    font_size = 1
-    # https://stackoverflow.com/a/4902713/13033981
-    while font.getsize(name)[0] < 238.5:
-        font_size += 1
-        font = ImageFont.truetype(font=font_path, size=font_size)
-    font_paper = Image.new("RGB", (265, 100), color="white")
-    draw = ImageDraw.Draw(font_paper)
-    w, h = font.getsize(name)
-    draw.text(((265 - w) / 2, (100 - h) / 2), name, font=font, fill="black")
-    main_paper = Image.open(Path("assets", "plain_paper.png"))
-    main_paper.paste(font_paper, (800, 460, 1065, 560))
-    font_paper.close()
-    metrics_paper = "".join([f"{x} :- {y}\n" for x, y in metrics.items()])
-    draw = ImageDraw.Draw(main_paper)
-    font = ImageFont.truetype(font_path, size=28)
-    draw.multiline_text((1185, 215), metrics_paper, fill="white", font=font, spacing=15)
-    return_object = io.BytesIO()
-    main_paper.save(return_object, format="png")
-    main_paper.close()
-    return_object.name = "@Web-Screenshot.png"
-    return return_object
-
-
-async def render_statics(name: str, metrics: dict) -> io.BytesIO:
-    return await asyncio.get_running_loop().run_in_executor(None, _draw_statics, name, metrics)

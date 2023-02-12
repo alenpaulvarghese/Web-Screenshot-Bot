@@ -1,10 +1,10 @@
-FROM mcr.microsoft.com/playwright/python:jammy
+FROM mcr.microsoft.com/playwright/python:v1.30.0-jammy
 
 WORKDIR /app
 
 RUN apt-get update -y -q
 
-# installing chrome binary and additional fonts 
+# installing chrome binary and additional fonts
 RUN apt-get install -y fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
 	--no-install-recommends \
 	&& rm -rf /var/lib/apt/lists/*

@@ -6,7 +6,7 @@ import shutil
 from enum import Enum
 from pathlib import Path
 from re import sub
-from typing import Optional, TypedDict
+from typing import Optional, TypedDict, Union
 
 from pyrogram.types import Message
 
@@ -34,9 +34,12 @@ class CacheData(TypedDict):
     scroll_control: ScrollMode
 
 
+Resolution = TypedDict('Resolution', {'width': int, 'height': int}) | TypedDict('Resolution', {'format': str})
+
+
 class Printer(object):
     def __init__(self, render_type: RenderType, link: str):
-        self.resolution = {"width": 800, "height": 600}
+        self.resolution: Resolution = {"width": 800, "height": 600}
         self.link = link
         self.split = False
         self.fullpage = True
@@ -50,7 +53,7 @@ class Printer(object):
         if self.type.is_image():
             res = "{width}x{height}".format_map(self.resolution)
         else:
-            res = self.resolution.get('format')
+            res = self.resolution.get('format', 'Letter')
         return (
             f"|- [{name}](tg://user?id={_id})\n"
             f"|- Format - > `{self.type.name}`\n|- Resolution - > `{res}`\n"
@@ -59,14 +62,14 @@ class Printer(object):
         )
 
     @property
-    def viewport(self) -> Optional[int]:
-        self.resolution if self.type.is_image() else None
+    def viewport(self) -> Optional[Resolution]:
+        return self.resolution if self.type.is_image() else None
 
     def cache_dict(self) -> CacheData:
         if self.type.is_image():
             res = "{width}x{height}".format_map(self.resolution)
         else:
-            res = self.resolution.get('format')
+            res = self.resolution.get('format', 'Letter')
         return CacheData(
             render_type=self.type,
             split=self.split,
@@ -131,7 +134,7 @@ class Printer(object):
     def from_message(message: Message) -> "Printer":
         """Function that parse render settings from message."""
         split, resolution, scroll_control = False, "", ScrollMode.OFF
-        for settings in message.reply_markup.inline_keyboard:
+        for settings in message.reply_markup.inline_keyboard:  # type: ignore
             text = settings[0].text
             if "Format" in text:
                 if "PDF" in text:

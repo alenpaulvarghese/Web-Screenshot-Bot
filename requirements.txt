@@ -1,0 +1,9 @@
+Pillow==11.1.*
+Pyrogram==2.0.*
+TgCrypto==1.2.*
+cachetools==5.5.*
+python-dotenv==1.0.*
+playwright==1.51.0
+
+# Dev Requirements
+ipdb

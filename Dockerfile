@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/playwright/python:v1.30.0-jammy
+FROM  mcr.microsoft.com/playwright/python:v1.51.0-jammy
 
 WORKDIR /app
 
@@ -11,17 +11,13 @@ RUN apt-get install -y fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fon
 
 ENV PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
-    PIP_DEFAULT_TIMEOUT=100 \
-    # do not ask any interactive question
-    POETRY_NO_INTERACTION=1
-
-RUN pip install poetry
+    PIP_DEFAULT_TIMEOUT=100
 
 # copy the source into the virtual space
 COPY . /app/
 
 # install dependencies
-RUN poetry config virtualenvs.create false && poetry install --no-dev --no-ansi
+RUN pip install -r requirements.txt
 
 # run the program
 CMD ["python", "."]

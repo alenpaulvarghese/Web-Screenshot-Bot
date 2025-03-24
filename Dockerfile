@@ -5,9 +5,8 @@ WORKDIR /app
 RUN apt-get update -y -q
 
 # installing chrome binary and additional fonts
-RUN apt-get install -y fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
-	--no-install-recommends \
-	&& rm -rf /var/lib/apt/lists/*
+RUN apt-get install -y fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 gcc python3-dev \
+	--no-install-recommends
 
 ENV PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
@@ -18,6 +17,10 @@ COPY . /app/
 
 # install dependencies
 RUN pip install -r requirements.txt
+
+# Remove build dependencies
+RUN apt remove gcc python3-dev -y && apt autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
 
 # run the program
 CMD ["python", "."]

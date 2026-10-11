@@ -52,11 +52,11 @@ async def feedback(_, message: Message) -> None:
                 [
                     InlineKeyboardButton(
                         "👨🏻‍🦯 Source",
-                        url="https://github.com/alenpaul2001/Web-Screenshot-Bot",
+                        url="https://github.com/alenpaulvarghese/Web-Screenshot-Bot",
                     ),
                     InlineKeyboardButton(
                         "❓ Bug Report",
-                        url="https://github.com/alenpaul2001/Web-Screenshot-Bot/issues",
+                        url="https://github.com/alenpaulvarghese/Web-Screenshot-Bot/issues",
                     ),
                 ],
                 [
@@ -82,7 +82,7 @@ async def help_handler(_, message: Message) -> None:
             " an actual browser under the hood to render websites.\n\n"
             "**C. How to report a bug or request a new feature?\n\n"
             "Ans:** For feature requests or bug reports, you can open an "
-            "[issue](https://github.com/alenpaul2001/Web-Screenshot-Bot) in Github"
+            "[issue](https://github.com/alenpaulvarghese/Web-Screenshot-Bot) in Github"
             " or send the inquiry message in the support group mentioned below.",
             reply_markup=InlineKeyboardMarkup(
                 [[InlineKeyboardButton(text="Support group", url=Config.SUPPORT_GROUP_LINK)]]

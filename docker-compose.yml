@@ -1,0 +1,43 @@
+# Docker Compose for Web-Screenshot-Bot.
+#
+# First run:
+#   cp config.env.sample config.env   # then fill in BOT_TOKEN / API_ID / API_HASH
+#   docker compose up -d
+#   docker compose logs -f
+#
+# The image tag is kept in sync with the playwright pin in requirements.txt by hand.
+# If you bump playwright there, bump it here too.
+
+services:
+  webshotbot:
+    build: .
+    image: webshot-bot:latest
+    container_name: webshotbot
+    restart: unless-stopped
+
+    # config.py reads these from the environment; this is the same file the
+    # non-Docker instructions ask you to create. It is gitignored.
+    env_file:
+      - config.env
+
+    volumes:
+      # Pyrogram stores Telegram auth in /app/webshot-bot.session. Without this,
+      # every rebuild forces you to re-authenticate with the bot.
+      #
+      # The volume is mounted on a *directory* and the session file is symlinked
+      # into it. Mounting a volume directly on the .session file would make Docker
+      # create a directory at that path (the file does not exist in the image),
+      # which breaks sqlite. The symlink avoids that.
+      - webshotbot-session:/app/session
+
+    # Create the symlink, then hand off to the normal entrypoint.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /app/session
+        ln -sf /app/session/webshot-bot.session /app/webshot-bot.session
+        exec python .
+
+volumes:
+  webshotbot-session:
